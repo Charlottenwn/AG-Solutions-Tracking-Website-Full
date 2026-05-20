@@ -1,0 +1,258 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.backgroundColor = '#111827';
+        } else {
+            document.documentElement.style.backgroundColor = '#f3f4f6';
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style type="text/tailwindcss">
+        @import "tailwindcss";
+        @variant dark (&:where(.dark, .dark *));
+    </style>
+    <title>Main Commercial Offer Page</title>
+</head>
+
+<body class="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col text-sm transition-colors duration-200">
+    <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-5xl mx-auto px-6 flex items-center justify-between">
+            <span class="text-gray-400 dark:text-gray-500 font-medium text-xs uppercase tracking-widest py-4">AG
+                Solutions</span>
+            <span
+                class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-widest py-4">Tracking</span>
+            <button id="darkToggle" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition">
+                <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" />
+                </svg>
+                <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 hidden" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15.07-6.07-.71.71M6.34 17.66l-.71.71m12.73 0-.71-.71M6.34 6.34l-.71-.71M12 5a7 7 0 1 1 0 14A7 7 0 0 1 12 5z" />
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <main class="flex-1 max-w-5xl mx-auto w-full px-6 py-8">
+        <button onclick="window.location.href = '/login_page/'" type="button"
+            class="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 cursor-pointer mb-8">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+            Back
+        </button>
+
+        <section class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 space-y-5">
+
+            <!-- Search & Filter -->
+            <div class="flex gap-3 flex-wrap">
+                <div class="relative flex-1 min-w-44">
+                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                        </svg>
+                    </span>
+                    <input type="text" placeholder="Search company..."
+                        class="w-full pl-9 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500" />
+                </div>
+                <select
+                    class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500">
+                    <option>All payments/transport</option>
+                    <option>Paid</option>
+                    <option>Unpaid</option>
+                    <option>Overdue</option>
+                    <option>Transport pending</option>
+                    <option>Transport confirmed</option>
+                    <option>Transport overdue</option>
+                </select>
+            </div>
+
+            <!-- Stat Cards -->
+            <div class="grid grid-cols-3 gap-3">
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total orders</p>
+                    <p class="text-2xl font-medium text-gray-900 dark:text-white">3</p>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Payments past due</p>
+                    <p class="text-2xl font-medium text-red-600 dark:text-red-400">1</p>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Due this week</p>
+                    <p class="text-2xl font-medium text-amber-600 dark:text-amber-400">2</p>
+                </div>
+            </div>
+
+            <!-- Order Rows -->
+            <div class="flex flex-col gap-3">
+
+                <!-- Row 1 -->
+                <div
+                    class="border border-gray-200 dark:border-gray-600 rounded-xl p-4 flex items-start justify-between gap-4 hover:border-gray-300 dark:hover:border-gray-500 transition-colors">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-sm font-medium text-gray-900 dark:text-white">25KL 12-19/1</span>
+                            <span class="text-sm text-gray-500 dark:text-gray-400">— FOKUS VINDUER</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>Transport pending · 20 days remaining</span>
+                            <span class="cursor-help" title="Courier: DSV Poland">ⓘ</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end gap-1.5 shrink-0">
+                        <!-- Client deposit -->
+                        <span
+                            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                            Client Deposit Paid ✓
+                        </span>
+                        <!-- Divider -->
+                        <div class="w-full border-t border-gray-200 dark:border-gray-600 my-0.5"></div>
+                        <!-- Factory deposit -->
+                        <span
+                            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-600/30 dark:text-amber-400">
+                            Factory Deposit Due in 4 days
+                        </span>
+                        <span title="No reminder sent yet · 4 days remaining Palle, +45 4051 2640"
+                            class="text-xs text-gray-400 dark:text-gray-500 cursor-help">
+                            no reminder sent ⓘ
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Row 2 -->
+                <div
+                    class="border border-gray-200 dark:border-gray-600 rounded-xl p-4 flex items-start justify-between gap-4 hover:border-gray-300 dark:hover:border-gray-500 transition-colors">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-sm font-medium text-gray-900 dark:text-white">25KL 12-23/1</span>
+                            <span class="text-sm text-gray-500 dark:text-gray-400">— INDUNOR</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-red-500 dark:text-red-400">
+                            <span>Transport pending · 7 days remaining</span>
+                            <span class="cursor-help text-gray-400" title="Courier: NTEX">ⓘ</span>
+                            <span title="Transport reminder sent · 7 days remaining"
+                                class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 cursor-help">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                                Transport reminder sent
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end gap-1.5 shrink-0">
+                        <!-- Client deposit -->
+                        <span
+                            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            Client Deposit Due in 4 days
+                        </span>
+                        <span title="Client deposit reminder sent · 4 days remaining"
+                            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 cursor-help">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            Client reminder sent
+                        </span>
+                        <!-- Divider -->
+                        <div class="w-full border-t border-gray-200 dark:border-gray-600 my-0.5"></div>
+                        <!-- Factory deposit -->
+                        <span
+                            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                            Factory Deposit Due in 6 days
+                        </span>
+                        <span title="Factory deposit reminder sent · 6 days remaining"
+                            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 cursor-help">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            Factory reminder sent
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Row 3 -->
+                <div
+                    class="border border-gray-200 dark:border-gray-600 rounded-xl p-4 flex items-start justify-between gap-4 hover:border-gray-300 dark:hover:border-gray-500 transition-colors">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-sm font-medium text-gray-900 dark:text-white">26KL 01-21/1</span>
+                            <span class="text-sm text-gray-500 dark:text-gray-400">— AS NORFO</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                            <span>Transport confirmed</span>
+                            <span class="cursor-help text-gray-400" title="Courier: DSV Poland">ⓘ</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end gap-1.5 shrink-0">
+                        <!-- Client deposit -->
+                        <span
+                            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                            Client Deposit Due in 3 days
+                        </span>
+                        <span title="Client deposit reminder sent · 3 days remaining"
+                            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 cursor-help">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            Client reminder sent
+                        </span>
+                        <!-- Divider -->
+                        <div class="w-full border-t border-gray-200 dark:border-gray-600 my-0.5"></div>
+                        <!-- Factory deposit -->
+                        <span
+                            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                            Factory Deposit Due in 3 days
+                        </span>
+                        <span title="Factory deposit reminder sent · 3 days remaining"
+                            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 cursor-help">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            Factory reminder sent
+                        </span>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <footer class="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+        <div class="max-w-5xl mx-auto px-6 py-4">
+            <p class="text-xs text-gray-400 dark:text-gray-500 text-center m-0">
+                &copy; 2026 AG Solutions UAB. All rights reserved.
+            </p>
+        </div>
+    </footer>
+
+    <script src="{% static 'main/js/darkmode.js' %}"></script>
+</body>
+
+</html>
