@@ -6,6 +6,7 @@ services:
     ports:
       - "8000:8000"
     environment:
+      - GOOGLE_SHEETS_CREDENTIALS_PATH=/app/secrets/google-sheets-key.json
       - DEBUG=1
     depends_on:
       - db

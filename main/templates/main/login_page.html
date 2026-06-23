@@ -50,7 +50,7 @@
             <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-6">
                 Sign in
             </p>
-            <form novalidate class="flex flex-col gap-4">
+            <form novalidate id="loginForm" class="flex flex-col gap-4">
                 <div class="flex flex-col gap-1.5">
                     <label for="username" class="text-gray-500 dark:text-gray-400">Username</label>
                     <input type="text" id="username" name="username" required
@@ -61,10 +61,10 @@
                     <input type="password" id="password" name="password" required
                         class="w-full border border-gray-400 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-1.5" />
                 </div>
-                <a href="/main_offer_page/"
-                    class="mt-2 w-full bg-gray-900 hover:bg-gray-700 text-white text-center font-medium py-2 rounded-lg transition-colors no-underline">
+                <button type="submit"
+                    class="mt-2 w-full bg-gray-900 hover:bg-gray-700 text-white text-center font-medium py-2 rounded-lg transition-colors cursor-pointer">
                     Login
-                </a>
+                </button>
             </form>
         </div>
     </main>
@@ -78,6 +78,7 @@
     </footer>
 
     <script src="{% static 'main/js/darkmode.js' %}"></script>
+    <script src="{% static 'main/js/login.js' %}"></script>
 </body>
 
 </html>
