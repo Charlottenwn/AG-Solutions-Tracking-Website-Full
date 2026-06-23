@@ -17,6 +17,7 @@ class Order(models.Model):
     ]
     client = models.ForeignKey(Client, on_delete=models.PROTECT)
     contract_number = models.CharField(max_length=50, unique=True)
+    country = models.CharField(max_length=100, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -58,6 +59,10 @@ class FactoryOrder(models.Model):
     ]
     order=models.ForeignKey(Order, on_delete=models.CASCADE)
     factory_name=models.CharField(max_length=100, blank=True)
+    factory_order_number = models.CharField(max_length=100, blank=True)
+    order_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    production_start_date = models.DateField(null=True, blank=True)
+    production_end_date = models.DateField(null=True, blank=True)
     status=models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at=models.DateTimeField(auto_now_add=True)
 
@@ -72,6 +77,9 @@ class ClientOrder(models.Model):
     ]
     order=models.ForeignKey(Order, on_delete=models.CASCADE)
     client=models.ForeignKey(Client, on_delete=models.PROTECT)
+    client_representative = models.CharField(max_length=100, blank=True)
+    client_contact = models.CharField(max_length=150, blank=True)
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     status=models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at=models.DateTimeField(auto_now_add=True)
 
@@ -88,6 +96,7 @@ class DepositType(models.Model):
 class DepositFactory(models.Model):
     factory_order = models.ForeignKey(FactoryOrder, on_delete=models.CASCADE)
     deposit_type = models.ForeignKey(DepositType, on_delete=models.PROTECT)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     is_paid = models.BooleanField(default=False)
     payment_due_by = models.DateField(null=True, blank=True)
     is_reminder_sent = models.BooleanField(default=False)
@@ -115,6 +124,7 @@ class DepositFactory(models.Model):
 class DepositClient(models.Model):
     client_order = models.ForeignKey(ClientOrder, on_delete=models.CASCADE)
     deposit_type = models.ForeignKey(DepositType, on_delete=models.PROTECT)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     is_paid = models.BooleanField(default=False)
     payment_due_by = models.DateField(null=True, blank=True)
     is_reminder_sent = models.BooleanField(default=False)
@@ -137,4 +147,3 @@ class DepositClient(models.Model):
 
     def __str__(self):
         return f"Client deposit for {self.client_order} - {self.deposit_type}"
-# Create your models here.
