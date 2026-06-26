@@ -19,11 +19,16 @@ services:
 
 
   db:
-    image: postgres
+    image: postgres:18
 
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
       - ./secrets:/run/secrets:ro
+
+    environment:
+      - POSTGRES_USER_FILE=/run/secrets/postgres_user.txt
+      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password.txt
+      - POSTGRES_DB_FILE=/run/secrets/postgres_db.txt
 
     ports:
       - "5432:5432"
