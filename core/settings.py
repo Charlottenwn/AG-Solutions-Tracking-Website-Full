@@ -10,6 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import json
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -72,13 +74,16 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
+def read_secret(path):
+    with open(path) as f:
+        return f.read().strip()
 
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "testdb",
-        "USER": "postgres",
-        "PASSWORD": "password",
+        "NAME": read_secret("/app/secrets/postgres_db.txt"),
+        "USER": read_secret("/app/secrets/postgres_user.txt"),
+        "PASSWORD": read_secret("/app/secrets/postgres_password.txt"),
         "HOST": "db",
         "PORT": 5432,
     }
