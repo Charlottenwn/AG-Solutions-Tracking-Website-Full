@@ -65,13 +65,34 @@ class TransportAdmin(admin.ModelAdmin):
             if obj.is_reminder_sent:
                 readonly += ['reminder_date']
         return readonly
+    
+@admin.register(FactoryOrder)
+class FactoryOrderAdmin(admin.ModelAdmin):
+    fields = [
+        'order',
+        'factory_name',
+        'factory_order_number',
+        'order_amount',
+        'production_start_date',
+        'production_end_date',
+        'status',
+        'furniture_reminder_date',
+        'is_furniture_reminder_sent',
+        'package_clarification_reminder_date',
+        'is_package_clarification_reminder_sent',
+    ]
+    
+    def get_readonly_fields(self, request, obj=None):
+        readonly = ['furniture_reminder_date', 'package_clarification_reminder_date']  # always readonly
+        if obj:
+            if obj.is_furniture_reminder_sent:
+                readonly += ['furniture_reminder_date']
+            if obj.is_package_clarification_reminder_sent:
+                readonly += ['package_clarification_reminder_date']
+        return readonly
 
 admin.site.register(Client)
 admin.site.register(Order)
-admin.site.register(FactoryOrder)
 admin.site.register(ClientOrder)
 admin.site.register(DepositType)
-
-
-
 # Register your models here.
