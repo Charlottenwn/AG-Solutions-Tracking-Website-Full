@@ -179,6 +179,23 @@
                             </span>
                             {% endif %}
                         {% endif %}
+                         {% if card.furniture_status or card.package_clarification_status %}
+                        <div class="w-full border-t border-gray-200 dark:border-gray-600 my-0.5"></div>
+                        {% endif %}
+ 
+                        {% if card.furniture_status and not card.furniture_status.reminder_sent %}
+                        <span
+                            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full {{ card.furniture_status.token|deposit_badge_class }}">
+                            {{ card.furniture_status.label }}
+                        </span>
+                        {% endif %}
+ 
+                        {% if card.package_clarification_status and not card.package_clarification_status.reminder_sent %}
+                        <span
+                            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full {{ card.package_clarification_status.token|deposit_badge_class }}">
+                            {{ card.package_clarification_status.label }}
+                        </span>
+                        {% endif %}
                     </div>
                 </div>
                 {% empty %}
@@ -186,11 +203,11 @@
                     No orders yet — run <code>python manage.py sync_sheet</code> to pull data from the Google Sheet.
                 </p>
                 {% endfor %}
-
+ 
             </div>
         </section>
     </main>
-
+ 
     <footer class="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <div class="max-w-5xl mx-auto px-6 py-4">
             <p class="text-xs text-gray-400 dark:text-gray-500 text-center m-0">
@@ -198,9 +215,9 @@
             </p>
         </div>
     </footer>
-
+ 
     <script src="{% static 'main/js/darkmode.js' %}"></script>
     <script src="{% static 'main/js/filter.js' %}"></script>
 </body>
-
+ 
 </html>
