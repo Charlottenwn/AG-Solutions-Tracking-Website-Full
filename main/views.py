@@ -197,11 +197,16 @@ def main_offer_page(request):
         package_clarification_status = _compute_package_clarification_status(factory_order, today)
         
         search_text = f"{order.contract_number} {order.client.client_name}".lower()
-        status_tokens = (
-            f"client-{client_status['token']} "
-            f"factory-{factory_status['token']} "
-            f"transport-{transport_status['token']}"
-        )
+        furniture_token = f"furniture-{furniture_status['token']}" if furniture_status else ""
+        package_token = f"package-{package_clarification_status['token']}" if package_clarification_status else ""
+        status_tokens = " ".join(filter(None, [
+            f"client-{client_status['token']}",
+            f"factory-{factory_status['token']}",
+            f"transport-{transport_status['token']}",
+            furniture_token,
+            package_token,
+        ]))
+
 
         order_cards.append({
             "order": order,
