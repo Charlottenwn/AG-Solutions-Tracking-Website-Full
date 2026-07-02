@@ -1,3 +1,5 @@
+from cProfile import label
+
 from django.shortcuts import render
 from django.utils import timezone
 
@@ -108,7 +110,56 @@ def _compute_transport_status(transport, today):
         "reminder_sent": transport.is_reminder_sent,
     }
 
+def _compute_furniture_status(factory_order, today):
+    if not factory_order or not factory_order.furniture_reminder_date:
+        return None
+    
+    days_remaining = (factory_order.furniture_reminder_date - today).days
+    due = days_remaining <= 0
+    
+    if factory_order.is_furniture_reminder_sent:
+        token = "paid"
+        label = "Furniture reminder sent"
+    elif due:
+        token = "overdue"
+        label = f"Furniture reminder overdue by {abs(days_remaining)} days"
+    else:
+        token = "due"
+        label = f"Furniture reminder in {days_remaining} days"
 
+    return {
+        "label": label,
+        "token": token,
+        "due": due,
+        "days_remaining": days_remaining,
+        "reminder_sent": factory_order.is_furniture_reminder_sent,
+    }
+    
+def _compute_package_clarification_status(factory_order, today):
+    if not factory_order or not factory_order.package_clarification_reminder_date:
+        return None
+    
+    days_remaining = (factory_order.package_clarification_reminder_date - today).days
+    due = days_remaining <= 0
+
+    if factory_order.is_package_clarification_reminder_sent:
+        token = "paid"
+        label = "Package clarification reminder sent"
+    elif due:
+        token = "overdue"
+        label = f"Package clarification overdue by {abs(days_remaining)} days"
+    else:
+        token = "due"
+        label = f"Package clarification in {days_remaining} days"
+
+    return {
+        "label": label,
+        "token": token,
+        "due": due,
+        "days_remaining": days_remaining,
+        "reminder_sent": factory_order.is_package_clarification_reminder_sent,
+    }
+    
 def login_page(request):
     return render(request, 'main/login_page.html')
 
@@ -139,7 +190,9 @@ def main_offer_page(request):
             factory_order.depositfactory_set.all() if factory_order else [], today
         )
         transport_status = _compute_transport_status(transport, today)
-
+        furniture_status = _compute_furniture_status(factory_order, today)
+        package_clarification_status = _compute_package_clarification_status(factory_order, today)
+        
         search_text = f"{order.contract_number} {order.client.client_name}".lower()
         status_tokens = (
             f"client-{client_status['token']} "
@@ -154,6 +207,8 @@ def main_offer_page(request):
             "transport": transport,
             "client_status": client_status,
             "factory_status": factory_status,
+            "furniture_status": furniture_status,
+            "package_clarification_status": package_clarification_status,
             "transport_status": transport_status,
             "search_text": search_text,
             "status_tokens": status_tokens,
@@ -182,6 +237,14 @@ def main_offer_page(request):
             or (
                 card["factory_status"]["days_remaining"] is not None
                 and 0 <= card["factory_status"]["days_remaining"] <= 7
+            )
+            or (
+                card["furniture_status"] and card["furniture_status"]["days_remaining"] is not None
+                and 0 <= card["furniture_status"]["days_remaining"] <= 3    
+            )
+            or (
+                card["package_clarification_status"] and card["package_clarification_status"]["days_remaining"] is not None
+                and 0 <= card["package_clarification_status"]["days_remaining"] <= 3
             )
         )
     )
