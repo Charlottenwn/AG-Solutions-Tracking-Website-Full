@@ -25,6 +25,10 @@ function initFilters() {
                     matchesFilter = statuses.some(s => s.endsWith('-due') || s.endsWith('-overdue'));
                 } else if (filterValue === 'overdue') {
                     matchesFilter = statuses.some(s => s.endsWith('-overdue'));
+                } else if (filterValue === 'furniture-due') {
+                    matchesFilter = statuses.some(s => s === 'furniture-due' || s === 'furniture-overdue');
+                } else if (filterValue === 'package-due') {
+                    matchesFilter = statuses.some(s => s === 'package-due' || s === 'package-overdue');
                 } else {
                     // transport-pending / transport-confirmed / transport-overdue
                     matchesFilter = statuses.includes(filterValue);
