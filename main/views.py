@@ -121,11 +121,12 @@ def _compute_furniture_status(factory_order, today):
         token = "paid"
         label = "Furniture reminder sent"
     elif due:
-        token = "overdue"
-        label = f"Furniture reminder overdue by {abs(days_remaining)} days"
-    else:
         token = "due"
         label = f"Furniture reminder in {days_remaining} days"
+    else:
+        token = "overdue"
+        label = f"Furniture reminder overdue by {abs(days_remaining)} days"
+
 
     return {
         "label": label,
@@ -146,11 +147,13 @@ def _compute_package_clarification_status(factory_order, today):
         token = "paid"
         label = "Package clarification reminder sent"
     elif due:
-        token = "overdue"
-        label = f"Package clarification overdue by {abs(days_remaining)} days"
-    else:
         token = "due"
         label = f"Package clarification in {days_remaining} days"
+    else:
+        token = "overdue"
+        label = f"Package clarification overdue by {abs(days_remaining)} days"
+        
+
 
     return {
         "label": label,
@@ -248,11 +251,20 @@ def main_offer_page(request):
             )
         )
     )
-
+    
+    furniture_package_reminders_due = sum(
+        1
+        for card in order_cards
+        if (
+            (card["furniture_status"] and card["furniture_status"]["due"])
+            or (card["package_clarification_status"] and card["package_clarification_status"]["due"])
+        )
+    )
     stats = {
         "total_orders": total_orders,
         "payments_past_due": payments_past_due,
         "due_this_week": due_this_week,
+        "furniture_package_reminders_due": furniture_package_reminders_due,
     }
     
     return render(request, 'main/main_offer_page.html', {"order_cards": order_cards, "stats": stats})
