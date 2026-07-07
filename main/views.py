@@ -7,7 +7,7 @@ from .models import Order
 
 # Deposit types are checked in this order — Deposit is resolved before
 # Final Payment, so the card shows whichever is still outstanding first.
-DEPOSIT_TYPE_PRIORITY = {"Deposit": 0, "Final Payment": 1}
+DEPOSIT_TYPE_PRIORITY = {"Deposit": 0, "Final Payment": 1, "Full Payment": 0}
 
 
 def _compute_deposit_status(deposits, today):
