@@ -89,6 +89,17 @@ class ClientOrder(models.Model):
         ('completed', 'Completed'),
         ('in_progress', 'In Progress'),
     ]
+    
+    PAYMENT_TYPE_FULL = "Visa suma"
+    PAYMENT_TYPE_DEPOSIT = "Avansas"
+    PAYMENT_TYPE_AFTER_DELIVERY = "Po pristatymo"
+    
+    PAYMENT_TYPE_CHOICES = [
+        (PAYMENT_TYPE_FULL, "Visa suma"),
+        (PAYMENT_TYPE_DEPOSIT, "Avansas"),
+        (PAYMENT_TYPE_AFTER_DELIVERY, "Po pristatymo"),
+    ]
+    
     order=models.ForeignKey(Order, on_delete=models.CASCADE)
     client=models.ForeignKey(Client, on_delete=models.PROTECT)
     client_representative = models.CharField(max_length=100, blank=True)
@@ -97,6 +108,7 @@ class ClientOrder(models.Model):
     status=models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at=models.DateTimeField(auto_now_add=True)
 
+    payment_type = models.CharField(max_length=50, choices=PAYMENT_TYPE_CHOICES, blank=True, default="")
     def __str__(self):
         return f"Client Order for {self.order}"
     

@@ -45,8 +45,6 @@ DEPOSIT_TYPE_DEPOSIT = "Deposit"
 DEPOSIT_TYPE_FINAL = "Final Payment"
 DEPOSIT_TYPE_FULL = "Full Payment"
 
-CLIENT_SPLIT_THRESHOLD = Decimal("10000")
-
 SHEET_COLUMNS = {
     "contract_number": "SUTARTIES NR.",
     "factory_order_number": "GAMYKLOS UŽSAKYMO Nr.",
@@ -60,6 +58,7 @@ SHEET_COLUMNS = {
     "shipment_delivery_date": "PRISTATYMO DATA",
     "country": "ŠALIS",
     "client_total_amount": "SUMA",
+    "client_payment_type": "MOKĖJIMO TIPAS",
     "client_deposit_amount": "AVANSAS",
     "client_final_amount": "GALUTINIS MOKĖJIMAS",
     "client_final_due_date": "GALUTINIO MOK TERMINAS",
@@ -219,7 +218,15 @@ class Command(BaseCommand):
         client_total = parse_decimal(row.get(c["client_total_amount"]))
         client_deposit_amount = parse_decimal(row.get(c["client_deposit_amount"]))
         client_final_amount = parse_decimal(row.get(c["client_final_amount"]))
-
+        
+        deposit = client_deposit_amount or Decimal("0")
+        final = client_final_amount or Decimal("0")
+        total = client_total or Decimal("0")
+        
+        payment_type = str(
+            row.get(c["client_payment_type"], "")
+            ).strip()
+        
         client_order, _ = ClientOrder.objects.update_or_create(
             order=order,
             defaults={
@@ -227,48 +234,88 @@ class Command(BaseCommand):
                 "client_representative": str(row.get(c["client_representative"], "")).strip(),
                 "client_contact": str(row.get(c["client_contact"], "")).strip(),
                 "total_amount": client_total,
+                "payment_type": payment_type,
             },
         )
 
-        deposit_type_deposit, _ = DepositType.objects.get_or_create(type_name=DEPOSIT_TYPE_DEPOSIT)
-        deposit_type_final, _ = DepositType.objects.get_or_create(type_name=DEPOSIT_TYPE_FINAL)
-        deposit_type_full, _ = DepositType.objects.get_or_create(type_name=DEPOSIT_TYPE_FULL)
+        deposit_type_deposit, _ = DepositType.objects.get_or_create(
+            type_name=DEPOSIT_TYPE_DEPOSIT
+        )
+        deposit_type_final, _ = DepositType.objects.get_or_create(
+            type_name=DEPOSIT_TYPE_FINAL
+        )
+        deposit_type_full, _ = DepositType.objects.get_or_create(
+            type_name=DEPOSIT_TYPE_FULL
+        )
         
-        if client_total is not None and client_total >= CLIENT_SPLIT_THRESHOLD:
-            # Split payment: avansas with no due date, galutinis mokejimas with due date
-            DepositClient.objects.update_or_create(
-                client_order=client_order,
-                deposit_type=deposit_type_deposit,
-                defaults={
-                    "amount": client_deposit_amount,
-                    "payment_due_by": None,  # No due date for deposit if split
-                    "is_paid": is_paid(client_deposit_amount, client_total),
-                },
-            )
-            DepositClient.objects.update_or_create(
-                client_order=client_order,
-                deposit_type=deposit_type_final,
-                defaults={
-                    "amount": client_final_amount,
-                    "payment_due_by": parse_date(row.get(c["client_final_due_date"])),
-                    "is_paid": is_paid(client_final_amount, client_total),
-                },
-            )
-            DepositClient.objects.filter(client_order=client_order, deposit_type=deposit_type_full).delete()
-        else:
-            # Full payment: single entry with due date
-            paid_so_far = (client_deposit_amount or Decimal("0")) + (client_final_amount or Decimal("0"))
+        paid_amount = deposit + final
+        
+        if payment_type == "Visa suma":
             DepositClient.objects.update_or_create(
                 client_order=client_order,
                 deposit_type=deposit_type_full,
                 defaults={
-                    "amount": client_total,
-                    "payment_due_by": parse_date(row.get(c["client_final_due_date"])),
-                    "is_paid": is_paid(paid_so_far, client_total),
+                    "amount": total,
+                    "payment_due_by": None,
+                    "is_paid": is_paid(paid_amount, total)
                 },
             )
-            DepositClient.objects.filter(client_order=client_order, deposit_type__in=[deposit_type_deposit, deposit_type_final]).delete()
-
+            
+            DepositClient.objects.filter(
+                client_order=client_order,
+                deposit_type__in=[deposit_type_deposit, deposit_type_final]
+            ).delete()
+            
+        elif payment_type == "Po pristatymo":
+            
+            DepositClient.objects.update_or_create(
+                client_order=client_order,
+                deposit_type=deposit_type_full,
+                defaults={
+                    "amount": paid_amount,
+                    "payment_due_by": parse_date(row.get(c["client_final_due_date"])),
+                    "is_paid": is_paid(paid_amount, total)
+                },
+            )
+            
+            DepositClient.objects.filter(
+                client_order=client_order,
+                deposit_type__in=[deposit_type_deposit, deposit_type_final],
+            ).delete()
+            
+        elif payment_type == "Avansas":
+            
+            DepositClient.objects.update_or_create(
+                client_order=client_order,
+                deposit_type=deposit_type_deposit,
+                defaults={
+                    "amount": deposit,
+                    "payment_due_by": None,
+                    "is_paid": deposit > 0,
+                },
+            )
+            
+            DepositClient.objects.update_or_create(
+                client_order=client_order,
+                deposit_type=deposit_type_final,
+                defaults={
+                    "amount": final,
+                    "payment_due_by": parse_date(row.get(c["client_final_due_date"])),
+                    "is_paid": final > 0,
+                },
+            )
+            
+            DepositClient.objects.filter(
+                client_order=client_order,
+                deposit_type=deposit_type_full
+            ).delete()
+            
+        else:
+            raise ValueError(
+                f"Unknown payment type '{payment_type}' "
+                f"for contract {contract_number}"
+            )
+            
         # --- Factory side ---
         factory_order_amount = parse_decimal(row.get(c["factory_order_amount"]))
         factory_deposit_amount = parse_decimal(row.get(c["factory_deposit_amount"]))
