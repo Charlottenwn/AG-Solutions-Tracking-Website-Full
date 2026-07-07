@@ -43,9 +43,10 @@ HEADER_ROW = 6
 
 DEPOSIT_TYPE_DEPOSIT = "Deposit"
 DEPOSIT_TYPE_FINAL = "Final Payment"
+DEPOSIT_TYPE_FULL = "Full Payment"
 
-# Maps our internal keys -> exact header text expected in Sheet1.
-# Update the right-hand side if your real sheet headers differ at all.
+CLIENT_SPLIT_THRESHOLD = Decimal("10000")
+
 SHEET_COLUMNS = {
     "contract_number": "SUTARTIES NR.",
     "factory_order_number": "GAMYKLOS UŽSAKYMO Nr.",
@@ -231,25 +232,42 @@ class Command(BaseCommand):
 
         deposit_type_deposit, _ = DepositType.objects.get_or_create(type_name=DEPOSIT_TYPE_DEPOSIT)
         deposit_type_final, _ = DepositType.objects.get_or_create(type_name=DEPOSIT_TYPE_FINAL)
-
-        DepositClient.objects.update_or_create(
-            client_order=client_order,
-            deposit_type=deposit_type_deposit,
-            defaults={
-                "amount": client_deposit_amount,
-                "payment_due_by": parse_date(row.get(c["client_deposit_due_date"])),
-                "is_paid": is_paid(client_deposit_amount, client_total),
-            },
-        )
-        DepositClient.objects.update_or_create(
-            client_order=client_order,
-            deposit_type=deposit_type_final,
-            defaults={
-                "amount": client_final_amount,
-                "payment_due_by": parse_date(row.get(c["client_final_due_date"])),
-                "is_paid": is_paid(client_final_amount, client_total),
-            },
-        )
+        deposit_type_full, _ = DepositType.objects.get_or_create(type_name=DEPOSIT_TYPE_FULL)
+        
+        if client_total is not None and client_total >= CLIENT_SPLIT_THRESHOLD:
+            # Split payment: avansas with no due date, galutinis mokejimas with due date
+            DepositClient.objects.update_or_create(
+                client_order=client_order,
+                deposit_type=deposit_type_deposit,
+                defaults={
+                    "amount": client_deposit_amount,
+                    "payment_due_by": None,  # No due date for deposit if split
+                    "is_paid": is_paid(client_deposit_amount, client_total),
+                },
+            )
+            DepositClient.objects.update_or_create(
+                client_order=client_order,
+                deposit_type=deposit_type_final,
+                defaults={
+                    "amount": client_final_amount,
+                    "payment_due_by": parse_date(row.get(c["client_final_due_date"])),
+                    "is_paid": is_paid(client_final_amount, client_total),
+                },
+            )
+            DepositClient.objects.filter(client_order=client_order, deposit_type=deposit_type_full).delete()
+        else:
+            # Full payment: single entry with due date
+            paid_so_far = (client_deposit_amount or Decimal("0")) + (client_final_amount or Decimal("0"))
+            DepositClient.objects.update_or_create(
+                client_order=client_order,
+                deposit_type=deposit_type_full,
+                defaults={
+                    "amount": client_total,
+                    "payment_due_by": parse_date(row.get(c["client_final_due_date"])),
+                    "is_paid": is_paid(paid_so_far, client_total),
+                },
+            )
+            DepositClient.objects.filter(client_order=client_order, deposit_type__in=[deposit_type_deposit, deposit_type_final]).delete()
 
         # --- Factory side ---
         factory_order_amount = parse_decimal(row.get(c["factory_order_amount"]))
