@@ -60,7 +60,6 @@ SHEET_COLUMNS = {
     "country": "ŠALIS",
     "client_total_amount": "SUMA",
     "client_deposit_amount": "AVANSAS",
-    "client_deposit_due_date": "AVANSO TERMINAS",
     "client_final_amount": "GALUTINIS MOKĖJIMAS",
     "client_final_due_date": "GALUTINIO MOK TERMINAS",
     "client_shipment_address": "PRISTATYMO ADRESAS",
@@ -267,9 +266,6 @@ class Command(BaseCommand):
             },
         )
 
-        # No due-date columns exist yet for factory deposit/final payment on the
-        # sheet — left blank for now (set manually in admin, or add sheet
-        # columns later and map them here).
         DepositFactory.objects.update_or_create(
             factory_order=factory_order,
             deposit_type=deposit_type_deposit,
