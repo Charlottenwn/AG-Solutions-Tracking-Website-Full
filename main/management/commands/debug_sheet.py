@@ -15,7 +15,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         import gspread
-        from google.oauth2.service_account import Credentials
+        from google.oauth2 import service_account as Credentials
 
         creds_path = os.environ["GOOGLE_SHEETS_CREDENTIALS_PATH"]
         sheet_id_json_path = os.environ["GOOGLE_SHEET_ID_PATH"]
