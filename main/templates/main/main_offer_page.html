@@ -190,17 +190,31 @@
                         {% endif %}
  
                         {% if card.furniture_status and not card.furniture_status.reminder_sent %}
-                        <span
+                        <span id="furniture-badge-{{ card.factory_order.id }}"
                             class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full {{ card.furniture_status.token|deposit_badge_class }}">
                             {{ card.furniture_status.label }}
                         </span>
+                        <form method="post" action="{% url 'mark_reminder_sent' 'furniture' card.factory_order.id %}" class="mark-sent-form" data-target="furniture-badge-{{ card.factory_order.id }}">
+                            {% csrf_token %}
+                            <button type="submit"
+                                class="text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline cursor-pointer">
+                                Mark sent
+                            </button>
+                        </form>
                         {% endif %}
  
                         {% if card.package_clarification_status and not card.package_clarification_status.reminder_sent %}
-                        <span
+                        <span id="package-badge-{{ card.factory_order.id }}"
                             class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full {{ card.package_clarification_status.token|deposit_badge_class }}">
                             {{ card.package_clarification_status.label }}
                         </span>
+                        <form method="post" action="{% url 'mark_reminder_sent' 'package' card.factory_order.id %}" class="mark-sent-form" data-target="package-badge-{{ card.factory_order.id }}">
+                            {% csrf_token %}
+                            <button type="submit"
+                                class="text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline cursor-pointer">
+                                Mark sent
+                            </button>
+                        </form>
                         {% endif %}
                     </div>
                 </div>
@@ -224,6 +238,7 @@
  
     <script src="{% static 'main/js/darkmode.js' %}"></script>
     <script src="{% static 'main/js/filter.js' %}"></script>
+    <script src="{% static 'main/js/reminders.js' %}"></script>
 </body>
  
 </html>
