@@ -1,5 +1,8 @@
 from cProfile import label
-
+from django.http import JsonResponse
+from django.shortcuts import redirect, get_object_or_404
+from django.views.decorators.http import require_POST
+from .models import FactoryOrder
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
@@ -126,23 +129,23 @@ def _compute_furniture_status(factory_order, today):
         return None
     
     days_remaining = (factory_order.furniture_reminder_date - today).days
-    due = days_remaining <= 0
+    overdue = days_remaining <= 0
     
     if factory_order.is_furniture_reminder_sent:
         token = "paid"
         label = "Furniture reminder sent"
-    elif due:
-        token = "due"
-        label = f"Furniture reminder in {days_remaining} days"
-    else:
+    elif overdue:
         token = "overdue"
         label = f"Furniture reminder overdue by {abs(days_remaining)} days"
+    else:
+        token = "due"
+        label = f"Furniture reminder in {days_remaining} days"
 
 
     return {
         "label": label,
         "token": token,
-        "due": due,
+        "overdue": overdue,
         "days_remaining": days_remaining,
         "reminder_sent": factory_order.is_furniture_reminder_sent,
     }
@@ -152,34 +155,29 @@ def _compute_package_clarification_status(factory_order, today):
         return None
     
     days_remaining = (factory_order.package_clarification_reminder_date - today).days
-    due = days_remaining <= 0
+    overdue = days_remaining <= 0
 
     if factory_order.is_package_clarification_reminder_sent:
         token = "paid"
         label = "Package clarification reminder sent"
-    elif due:
-        token = "due"
-        label = f"Package clarification in {days_remaining} days"
-    else:
+    elif overdue:
         token = "overdue"
         label = f"Package clarification overdue by {abs(days_remaining)} days"
+    else:        
+        token = "due"
+        label = f"Package clarification in {days_remaining} days"
+
         
     return {
         "label": label,
         "token": token,
-        "due": due,
+        "overdue": overdue,
         "days_remaining": days_remaining,
         "reminder_sent": factory_order.is_package_clarification_reminder_sent,
     }
     
 def login_page(request):
     return render(request, 'main/login_page.html')
-
-from django.http import JsonResponse
-from django.shortcuts import redirect, get_object_or_404
-from django.views.decorators.http import require_POST
-from .models import FactoryOrder
-
 
 @require_POST
 def mark_reminder_sent(request, kind, factory_order_id):
@@ -294,8 +292,8 @@ def main_offer_page(request):
         1
         for card in order_cards
         if (
-            (card["furniture_status"] and card["furniture_status"]["due"])
-            or (card["package_clarification_status"] and card["package_clarification_status"]["due"])
+            (card["furniture_status"] and card["furniture_status"]["overdue"])
+            or (card["package_clarification_status"] and card["package_clarification_status"]["overdue"])
         )
     )
     stats = {
