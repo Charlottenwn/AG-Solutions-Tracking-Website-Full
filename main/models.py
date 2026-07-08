@@ -2,6 +2,7 @@ from django.db import models
 
 REMINDER_DAYS_BEFORE = 7
 
+
 class Client(models.Model):
     client_name = models.CharField(max_length=100)
     client_contact_number = models.CharField(max_length=20, blank=True)
@@ -76,8 +77,14 @@ class FactoryOrder(models.Model):
         from datetime import timedelta
         if self.production_start_date:
             self.furniture_reminder_date = self.production_start_date - timedelta(days=3)
+        else:
+            self.furniture_reminder_date = None
+
         if self.production_end_date:
             self.package_clarification_reminder_date = self.production_end_date
+        else:
+            self.package_clarification_reminder_date = None
+
         super().save(*args, **kwargs)
 
     def __str__(self):
