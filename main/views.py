@@ -1,9 +1,11 @@
 from cProfile import label
 
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.http import require_POST
 
-from .models import Order
+from .models import Order, FactoryOrder, Transport
 
 # Deposit types are checked in this order — Deposit is resolved before
 # Final Payment, so the card shows whichever is still outstanding first.
@@ -173,6 +175,30 @@ def _compute_package_clarification_status(factory_order, today):
 def login_page(request):
     return render(request, 'main/login_page.html')
 
+from django.http import JsonResponse
+from django.shortcuts import redirect, get_object_or_404
+from django.views.decorators.http import require_POST
+from .models import FactoryOrder
+
+
+@require_POST
+def mark_reminder_sent(request, kind, factory_order_id):
+    factory_order = get_object_or_404(FactoryOrder, pk=factory_order_id)
+
+    if kind == "furniture":
+        factory_order.is_furniture_reminder_sent = True
+    elif kind == "package":
+        factory_order.is_package_clarification_reminder_sent = True
+    else:
+        if request.headers.get("X-Requested-With") == "fetch":
+            return JsonResponse({"ok": False, "error": "unknown kind"}, status=400)
+        return redirect("main_offer_page")
+
+    factory_order.save()
+
+    if request.headers.get("X-Requested-With") == "fetch":
+        return JsonResponse({"ok": True})
+    return redirect("main_offer_page")
 
 def main_offer_page(request):
     today = timezone.now().date()
