@@ -44,17 +44,13 @@ def _compute_deposit_status(deposits, today):
     unpaid.sort(key=lambda d: DEPOSIT_TYPE_PRIORITY.get(d.deposit_type.type_name, 99))
     active = unpaid[0]
     # Prefer unpaid payments that actually have a due date.
-    dated_unpaid = [d for d in unpaid if d.payment_due_by]
-
+    dated_unpaid = sorted((d for d in unpaid if d.payment_due_by),
+        key=lambda d: DEPOSIT_TYPE_PRIORITY.get(d.deposit_type.type_name, 99),
+    )
     if dated_unpaid:
-        dated_unpaid.sort(
-            key=lambda d: DEPOSIT_TYPE_PRIORITY.get(d.deposit_type.type_name, 99)
-        )
         active = dated_unpaid[0]
     else:
-        unpaid.sort(
-            key=lambda d: DEPOSIT_TYPE_PRIORITY.get(d.deposit_type.type_name, 99)
-        )
+        unpaid.sort(key=lambda d: DEPOSIT_TYPE_PRIORITY.get(d.deposit_type.type_name, 99))
         active = unpaid[0]
 
     days_remaining = None
