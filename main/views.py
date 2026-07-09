@@ -279,11 +279,13 @@ def main_offer_page(request):
             )
             or (
                 card["furniture_status"] and card["furniture_status"]["days_remaining"] is not None
-                and 0 <= card["furniture_status"]["days_remaining"] <= 3    
+                and 0 <= card["furniture_status"]["days_remaining"] <= 3 
+                and not card["furniture_status"]["reminder_sent"]   
             )
             or (
                 card["package_clarification_status"] and card["package_clarification_status"]["days_remaining"] is not None
                 and 0 <= card["package_clarification_status"]["days_remaining"] <= 3
+                and not card["package_clarification_status"]["reminder_sent"]
             )
         )
     )
@@ -292,8 +294,8 @@ def main_offer_page(request):
         1
         for card in order_cards
         if (
-            (card["furniture_status"] and card["furniture_status"]["overdue"])
-            or (card["package_clarification_status"] and card["package_clarification_status"]["overdue"])
+            (card["furniture_status"] and card["furniture_status"]["overdue"]) and not card["furniture_status"]["reminder_sent"]
+            or (card["package_clarification_status"] and card["package_clarification_status"]["overdue"]) and not card["package_clarification_status"]["reminder_sent"]
         )
     )
     stats = {
