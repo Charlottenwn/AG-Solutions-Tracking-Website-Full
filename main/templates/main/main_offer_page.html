@@ -95,11 +95,11 @@
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Furniture/Package reminders due</p>
-                    <p class="text-2xl font-medium text-amber-600 dark:text-amber-400">{{ stats.furniture_package_reminders_due }}</p>
+                    <p class="text-2xl font-medium text-amber-600 dark:text-amber-400" id="stat-furniture-package-due">{{ stats.furniture_package_reminders_due }}</p>
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Due this week</p>
-                    <p class="text-2xl font-medium text-amber-600 dark:text-amber-400">{{ stats.due_this_week }}</p>
+                    <p class="text-2xl font-medium text-amber-600 dark:text-amber-400" id="stat-due-this-week">{{ stats.due_this_week }}</p>
                 </div>
             </div>
 
@@ -194,7 +194,10 @@
                             class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full {{ card.furniture_status.token|deposit_badge_class }}">
                             {{ card.furniture_status.label }}
                         </span>
-                        <form method="post" action="{% url 'mark_reminder_sent' 'furniture' card.factory_order.id %}" class="mark-sent-form" data-target="furniture-badge-{{ card.factory_order.id }}">
+                        <form method="post" action="{% url 'mark_reminder_sent' 'furniture' card.factory_order.id %}" class="mark-sent-form"
+                            data-target="furniture-badge-{{ card.factory_order.id }}"
+                            data-counts-reminder-due="{{ card.furniture_status.due|yesno:'true,false' }}"
+                            data-counts-due-this-week="{% if card.furniture_status.days_remaining is not None and card.furniture_status.days_remaining >= 0 and card.furniture_status.days_remaining <= 3 %}true{% else %}false{% endif %}">
                             {% csrf_token %}
                             <button type="submit"
                                 class="text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline cursor-pointer">
@@ -208,7 +211,10 @@
                             class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full {{ card.package_clarification_status.token|deposit_badge_class }}">
                             {{ card.package_clarification_status.label }}
                         </span>
-                        <form method="post" action="{% url 'mark_reminder_sent' 'package' card.factory_order.id %}" class="mark-sent-form" data-target="package-badge-{{ card.factory_order.id }}">
+                        <form method="post" action="{% url 'mark_reminder_sent' 'package' card.factory_order.id %}" class="mark-sent-form"
+                            data-target="package-badge-{{ card.factory_order.id }}"
+                            data-counts-reminder-due="{{ card.package_clarification_status.due|yesno:'true,false' }}"
+                            data-counts-due-this-week="{% if card.package_clarification_status.days_remaining is not None and card.package_clarification_status.days_remaining >= 0 and card.package_clarification_status.days_remaining <= 3 %}true{% else %}false{% endif %}">
                             {% csrf_token %}
                             <button type="submit"
                                 class="text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline cursor-pointer">
