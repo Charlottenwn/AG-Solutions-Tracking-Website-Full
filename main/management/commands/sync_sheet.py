@@ -150,6 +150,19 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         rows = get_sheet_rows()
+        
+        if not rows:
+            self.stderr.write(
+                self.style.ERROR(
+                    "Sheet returned 0 rows — aborting sync without deleting "
+                    "anything from the database. This usually means the "
+                    "sheet was accidentally cleared, the wrong tab/sheet ID "
+                    "is configured, or the Sheets API call failed silently. "
+                    "If the sheet is genuinely meant to be empty, clear the "
+                    "database manually instead of relying on sync."
+                )
+            )
+            return
 
         synced = 0
         skipped = 0
@@ -168,10 +181,25 @@ class Command(BaseCommand):
 
         # Count extra occurrences (2 same rows = 1 duplicate)
         duplicate_count = sum(count - 1 for count in counts.values() if count > 1)
-    
+        duplicated_contracts = [contract for contract, count in counts.items() if count > 1]
 
         for row in rows:   
             contract_number = str(row.get(SHEET_COLUMNS["contract_number"], "")).strip()
+            
+            if not contract_number:
+                skipped += 1
+                continue
+
+            if contract_number in duplicated_contracts:
+                # Ambiguous — appears more than once in the sheet. Don't
+                # guess which row is correct. Leave the existing DB record
+                # (if any) untouched by still marking it "seen" so the
+                # end-of-sync cleanup doesn't delete it, but skip actually
+                # syncing any data for it until the sheet is fixed.
+                seen_contracts.add(contract_number)
+                skipped += 1
+                continue
+            
             seen_contracts.add(contract_number)
             
             if not contract_number:
@@ -196,6 +224,16 @@ class Command(BaseCommand):
         .exclude(contract_number__in=seen_contracts)
         .delete()
     )
+        
+        if duplicated_contracts:
+            self.stderr.write(
+                self.style.WARNING(
+                    f"Found duplicate contract numbers, skipped syncing "
+                    f"them (existing data left untouched): "
+                    f"{', '.join(sorted(duplicated_contracts))}"
+                )
+            )
+            
         self.stdout.write(
             self.style.SUCCESS(f"Sync complete. {synced} rows synced, {skipped} skipped, {duplicate_count} duplicates, {deleted_count} deleted.")
         )
