@@ -16,18 +16,12 @@ DEPOSIT_TYPE_PRIORITY = {"Deposit": 0, "Final Payment": 1, "Full Payment": 0}
 
 
 def _compute_deposit_status(deposits, today):
-    """
-    deposits: an iterable of DepositClient or DepositFactory rows for one
-    order (there are normally two: "Deposit" and "Final Payment").
-
-    Returns a dict describing which single badge to show on the card.
-    """
     deposits = list(deposits)
     if not deposits:
         return {
             "token": "due",
             "paid": False,
-            "label": "No deposit info",
+            "label": "no deposit info",
             "deposit_type": None,
             "days_remaining": None,
             "overdue": False,
@@ -46,17 +40,31 @@ def _compute_deposit_status(deposits, today):
             "reminder_sent": False,
         }
 
-    unpaid.sort(key=lambda d: DEPOSIT_TYPE_PRIORITY.get(d.deposit_type.type_name, 99))
-    active = unpaid[0]
-    # Prefer unpaid payments that actually have a due date.
-    dated_unpaid = sorted((d for d in unpaid if d.payment_due_by),
+    # A deposit row only counts as "informative" if it actually carries an
+    # amount or a due date — otherwise it's just an empty placeholder row
+    # created by sync (e.g. factory deposits before any sheet data exists).
+    informative_unpaid = [
+        d for d in unpaid if d.amount is not None or d.payment_due_by is not None
+    ]
+    if not informative_unpaid:
+        return {
+            "token": "due",
+            "paid": False,
+            "label": "no deposit info",
+            "deposit_type": None,
+            "days_remaining": None,
+            "overdue": False,
+            "reminder_sent": False,
+        }
+
+    informative_unpaid.sort(key=lambda d: DEPOSIT_TYPE_PRIORITY.get(d.deposit_type.type_name, 99))
+    active = informative_unpaid[0]
+    dated_unpaid = sorted(
+        (d for d in informative_unpaid if d.payment_due_by),
         key=lambda d: DEPOSIT_TYPE_PRIORITY.get(d.deposit_type.type_name, 99),
     )
     if dated_unpaid:
         active = dated_unpaid[0]
-    else:
-        unpaid.sort(key=lambda d: DEPOSIT_TYPE_PRIORITY.get(d.deposit_type.type_name, 99))
-        active = unpaid[0]
 
     days_remaining = None
     overdue = False
