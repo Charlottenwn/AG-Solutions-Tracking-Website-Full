@@ -1,20 +1,23 @@
+function decrementStat(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const current = parseInt(el.textContent, 10);
+    if (Number.isNaN(current)) return;
+    el.textContent = Math.max(0, current - 1);
+}
+
 function initReminderForms() {
     document.querySelectorAll('.mark-sent-form').forEach(form => {
         let bypassIntercept = false;
-
         form.addEventListener('submit', event => {
             if (bypassIntercept) return;
-
             event.preventDefault();
             const kindMatch = form.action.match(/mark_reminder_sent\/(\w+)\//);
             const kind = kindMatch ? kindMatch[1] : '';
             const label = kind === 'furniture' ? 'furniture' : 'package clarification';
-
             if (!confirm(`Mark ${label} reminder as sent?`)) return;
-
             const button = form.querySelector('button');
             button.disabled = true;
-
             fetch(form.action, {
                 method: 'POST',
                 headers: { 'X-Requested-With': 'fetch' },
@@ -27,6 +30,14 @@ function initReminderForms() {
                         button.disabled = false;
                         return;
                     }
+
+                    if (form.dataset.countsReminderDue === 'true') {
+                        decrementStat('stat-furniture-package-due');
+                    }
+                    if (form.dataset.countsDueThisWeek === 'true') {
+                        decrementStat('stat-due-this-week');
+                    }
+
                     const badge = document.getElementById(form.dataset.target);
                     const fadeTargets = [badge, form].filter(Boolean);
                     fadeTargets.forEach(el => el.classList.add('opacity-0'));
@@ -39,5 +50,4 @@ function initReminderForms() {
         });
     });
 }
-
 initReminderForms();
