@@ -130,7 +130,6 @@ def _compute_furniture_status(factory_order, today):
     
     days_remaining = (factory_order.furniture_reminder_date - today).days
     overdue = days_remaining <= 0
-    
     if factory_order.is_furniture_reminder_sent:
         token = "paid"
         label = "Furniture reminder sent"
@@ -141,22 +140,21 @@ def _compute_furniture_status(factory_order, today):
         token = "due"
         label = f"Furniture reminder in {days_remaining} days"
 
-
     return {
         "label": label,
         "token": token,
-        "overdue": overdue,
+        "due": overdue,
         "days_remaining": days_remaining,
         "reminder_sent": factory_order.is_furniture_reminder_sent,
     }
-    
+
+
 def _compute_package_clarification_status(factory_order, today):
     if not factory_order or not factory_order.package_clarification_reminder_date:
         return None
     
     days_remaining = (factory_order.package_clarification_reminder_date - today).days
     overdue = days_remaining <= 0
-
     if factory_order.is_package_clarification_reminder_sent:
         token = "paid"
         label = "Package clarification reminder sent"
@@ -166,12 +164,11 @@ def _compute_package_clarification_status(factory_order, today):
     else:        
         token = "due"
         label = f"Package clarification in {days_remaining} days"
-
         
     return {
         "label": label,
         "token": token,
-        "overdue": overdue,
+        "due": overdue,
         "days_remaining": days_remaining,
         "reminder_sent": factory_order.is_package_clarification_reminder_sent,
     }
@@ -294,8 +291,8 @@ def main_offer_page(request):
         1
         for card in order_cards
         if (
-            (card["furniture_status"] and card["furniture_status"]["overdue"]) and not card["furniture_status"]["reminder_sent"]
-            or (card["package_clarification_status"] and card["package_clarification_status"]["overdue"]) and not card["package_clarification_status"]["reminder_sent"]
+            (card["furniture_status"] and card["furniture_status"]["due"]) and not card["furniture_status"]["reminder_sent"]
+            or (card["package_clarification_status"] and card["package_clarification_status"]["due"]) and not card["package_clarification_status"]["reminder_sent"]
         )
     )
     stats = {
