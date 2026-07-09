@@ -215,9 +215,13 @@ class Command(BaseCommand):
         )
 
         # --- Client side ---
-        client_total = parse_decimal(row.get(c["client_total_amount"]))
-        client_deposit_amount = parse_decimal(row.get(c["client_deposit_amount"]))
-        client_final_amount = parse_decimal(row.get(c["client_final_amount"]))
+        raw_total = row.get(c["client_total_amount"])
+        raw_deposit = row.get(c["client_deposit_amount"])
+        raw_final = row.get(c["client_final_amount"])
+        
+        client_total = parse_decimal(raw_total)
+        client_deposit_amount = parse_decimal(raw_deposit)
+        client_final_amount = parse_decimal(raw_final)
         
         deposit = client_deposit_amount or Decimal("0")
         final = client_final_amount or Decimal("0")
@@ -237,7 +241,6 @@ class Command(BaseCommand):
                 "payment_type": payment_type,
             },
         )
-
         deposit_type_deposit, _ = DepositType.objects.get_or_create(
             type_name=DEPOSIT_TYPE_DEPOSIT
         )
@@ -249,8 +252,21 @@ class Command(BaseCommand):
         )
         
         paid_amount = deposit + final
+
+        def _cell_is_blank(raw_value):
+            text = str(raw_value).replace("€", "").strip() if raw_value is not None else ""
+            return text in ("", "-", "—")
+
+        has_client_amount = not (
+            _cell_is_blank(raw_total)
+            and _cell_is_blank(raw_deposit)
+            and _cell_is_blank(raw_final)
+        )
         
-        if payment_type == "Visa suma":
+        if not has_client_amount:
+            DepositClient.objects.filter(client_order=client_order).delete()
+            
+        elif payment_type == "Visa suma":
             DepositClient.objects.update_or_create(
                 client_order=client_order,
                 deposit_type=deposit_type_full,
@@ -309,6 +325,9 @@ class Command(BaseCommand):
                 client_order=client_order,
                 deposit_type=deposit_type_full
             ).delete()
+            
+        elif payment_type == "":
+            DepositClient.objects.filter(client_order=client_order).delete()
             
         else:
             raise ValueError(
