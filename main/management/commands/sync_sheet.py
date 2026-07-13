@@ -420,7 +420,7 @@ class Command(BaseCommand):
             deposit_type=deposit_type_final,
             defaults={
                 "amount": factory_final_amount,
-                "is_paid": factory_fully_paid or is_paid(factory_final_amount, factory_order_amount),
+                "is_paid": is_paid(factory_final_amount, factory_order_amount),
             },
         )
 
