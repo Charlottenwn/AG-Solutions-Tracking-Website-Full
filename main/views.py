@@ -112,7 +112,10 @@ def _compute_transport_status(transport, today):
 
     if confirmed:
         token = "confirmed"
-        label = "Transport confirmed"
+        if transport.delivery_date and days_remaining is not None and days_remaining < 0:
+            label = f"Transport confirmed · overdue by {abs(days_remaining)} days past original date"
+        else:
+            label = "Transport confirmed"
     elif overdue:
         token = "overdue"
         label = f"Transport pending · overdue by {abs(days_remaining)} days"

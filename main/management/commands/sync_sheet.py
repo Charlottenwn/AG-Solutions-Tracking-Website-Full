@@ -50,7 +50,7 @@ SHEET_COLUMNS = {
     "factory_order_number": "GAMYKLOS UŽSAKYMO Nr.",
     "factory_order_amount": "GAMYKLOS SUMA",
     "factory_deposit_amount": "GAMYKLOS AVANSO SUMA",
-    "factory_final_amount": "GAMYKLAI GALUTINIS MOKĖJIMAS\\",
+    "factory_final_amount": "GAMYKLAI GALUTINIS MOKĖJIMAS",
     "client": "KLIENTAS",
     "client_representative": "KLIENTO ATSTOVAS",
     "production_start_date": "GAMYBOS PRADŽIA",
@@ -304,6 +304,22 @@ class Command(BaseCommand):
         if not has_client_amount:
             DepositClient.objects.filter(client_order=client_order).delete()
             
+        elif client_total is not None and client_total < 0:
+            self.stderr.write(
+                self.style.WARNING(
+                    f"Negative client total amount for contract {contract_number}: {client_total}."
+                    f" Treating as no client deposit info."
+                )
+            )
+            client_total = None
+            client_deposit_amount = None
+            client_final_amount = None
+            
+            DepositClient.objects.filter(
+                client_order=client_order,
+                deposit_type__in=[deposit_type_deposit, deposit_type_final]
+            ).delete()
+            
         elif payment_type == "Visa suma":
             DepositClient.objects.update_or_create(
                 client_order=client_order,
@@ -388,12 +404,15 @@ class Command(BaseCommand):
             },
         )
 
+        factory_paid_amount = (factory_deposit_amount or Decimal("0")) + (factory_final_amount or Decimal("0"))
+        factory_fully_paid = is_paid(factory_paid_amount, factory_order_amount)
+        
         DepositFactory.objects.update_or_create(
             factory_order=factory_order,
             deposit_type=deposit_type_deposit,
             defaults={
                 "amount": factory_deposit_amount,
-                "is_paid": is_paid(factory_deposit_amount, factory_order_amount),
+                "is_paid": factory_fully_paid or is_paid(factory_deposit_amount, factory_order_amount),
             },
         )
         DepositFactory.objects.update_or_create(
@@ -401,7 +420,7 @@ class Command(BaseCommand):
             deposit_type=deposit_type_final,
             defaults={
                 "amount": factory_final_amount,
-                "is_paid": is_paid(factory_final_amount, factory_order_amount),
+                "is_paid": factory_fully_paid or is_paid(factory_final_amount, factory_order_amount),
             },
         )
 
