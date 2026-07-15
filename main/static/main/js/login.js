@@ -3,14 +3,10 @@ function initLoginForm() {
     if (!form) return;
 
     form.addEventListener('submit', function (event) {
-        event.preventDefault();
-
-        if (form.checkValidity()) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
             form.reportValidity();
-            return;
         }
-
-        window.location.href = '/main_offer_page/';
     });
 }
 
