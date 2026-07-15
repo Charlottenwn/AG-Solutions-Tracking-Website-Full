@@ -29,6 +29,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+LOGIN_URL = 'login_page'
+LOGIN_REDIRECT_URL = 'main_offer_page'
+
 
 # Application definition
 

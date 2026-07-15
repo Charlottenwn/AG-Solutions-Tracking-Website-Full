@@ -7,8 +7,9 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
-
+from django.contrib.auth import authenticate, login, logout
 from .models import Order, FactoryOrder, Transport
+from django.contrib.auth.decorators import login_required
 
 # Deposit types are checked in this order — Deposit is resolved before
 # Final Payment, so the card shows whichever is still outstanding first.
@@ -185,8 +186,26 @@ def _compute_package_clarification_status(factory_order, today):
     }
     
 def login_page(request):
-    return render(request, 'main/login_page.html')
+    error = None
+    
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "")
+        
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect("main_offer_page")
+        else:
+            error = "Invalid username or password."
+            
+    return render(request, 'main/login_page.html', {"error": error})
 
+def logout_view(request):
+    return redirect("login_page")
+
+
+@login_required(login_url='login_page')
 @require_POST
 def mark_reminder_sent(request, kind, factory_order_id):
     factory_order = get_object_or_404(FactoryOrder, pk=factory_order_id)
@@ -206,6 +225,7 @@ def mark_reminder_sent(request, kind, factory_order_id):
         return JsonResponse({"ok": True})
     return redirect("main_offer_page")
 
+@login_required(login_url='login_page')
 def main_offer_page(request):
     today = timezone.now().date()
 
