@@ -50,7 +50,11 @@
             <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-6">
                 Sign in
             </p>
-            <form novalidate id="loginForm" class="flex flex-col gap-4">
+            <form novalidate id="loginForm" method="post" class="flex flex-col gap-4">
+                {% csrf_token %}
+                {% if error %}
+                <p class="text-xs text-red-600 dark:text-red-400">{{ error }}</p>
+                {% endif %}
                 <div class="flex flex-col gap-1.5">
                     <label for="username" class="text-gray-500 dark:text-gray-400">Username</label>
                     <input type="text" id="username" name="username" required
