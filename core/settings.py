@@ -95,7 +95,8 @@ DATABASES = {
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
-
+# ADD-LATER: PASSWORD HASHERS, maybe even change hashing algo to a more current and secure one, like Argon2 or bcrypt.
+# ADD-LATER: Consider adding a password strength validator to enforce strong passwords.
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
