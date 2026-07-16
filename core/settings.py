@@ -14,6 +14,10 @@ import json
 import os
 from pathlib import Path
 
+def read_secret(path):
+    with open(path) as f:
+        return f.read().strip()
+    
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -22,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-tl1ou(y=*j-c_*mge4ezpw&@-a(nh30x$d&p^dz+jx9#zw2qng'
+SECRET_KEY = read_secret("/app/secrets/django_secret_key.txt")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -77,9 +81,7 @@ WSGI_APPLICATION = 'core.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-def read_secret(path):
-    with open(path) as f:
-        return f.read().strip()
+
 
 DATABASES = {
     "default": {
