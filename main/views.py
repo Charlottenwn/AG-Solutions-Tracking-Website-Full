@@ -40,7 +40,7 @@ def recover_password_request(request):
         except NoPhoneNumberOnFile:
             error = "No phone number on file for this account. Contact an admin."
         except RecoveryCodeLocked as exc:
-            error = f"Too many attempts. Try again after {exc.locked_until.strftime('%H:%M')}."
+            error = f"Too many attempts. Try again after {timezone.localtime(exc.locked_until).strftime('%H:%M')}."
 
     return render(request, "main/recover_password_request_page.html", {"error": error})
 
