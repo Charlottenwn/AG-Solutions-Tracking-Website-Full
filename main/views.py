@@ -2,7 +2,7 @@ from cProfile import label
 from django.http import JsonResponse
 from django.shortcuts import redirect, get_object_or_404
 from django.views.decorators.http import require_POST
-from .models import FactoryOrder
+from .models import RECOVERY_CODE_VALID_MINUTES, FactoryOrder
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
@@ -66,7 +66,7 @@ def recover_password_verify(request):
             
         error = "Invalid or expired code."
 
-    return render(request, "main/recover_password_verify_page.html", {"error": error, "username": username})
+    return render(request, "main/recover_password_verify_page.html", {"error": error, "username": username, "recovery_code_valid_minutes": RECOVERY_CODE_VALID_MINUTES})
 
 
 def set_new_password(request):
@@ -95,7 +95,7 @@ def set_new_password(request):
             del request.session["password_reset_token"]
             return redirect("login_page")
 
-    return render(request, "main/set_new_password_page.html", {"error": error, "user": user})
+    return render(request, "main/set_new_password_page.html", {"error": error, "user": user, "link_expiration_minutes": RESET_TOKEN_MAX_AGE_SECONDS // 60, "username": user.username, "recovery_code_valid_minutes": RECOVERY_CODE_VALID_MINUTES})
 
 def _compute_deposit_status(deposits, today):
     deposits = list(deposits)
