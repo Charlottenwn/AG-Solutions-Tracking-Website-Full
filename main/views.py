@@ -335,3 +335,14 @@ def main_offer_page(request):
     
     return render(request, 'main/main_offer_page.html', {"order_cards": order_cards, "stats": stats})
 
+def recover_password_request_page(request):
+    return render(request, 'main/recover_password_request_page.html')
+
+def set_new_password_page(request):
+    return render(request, 'main/set_new_password_page.html')
+
+def recover_password_verify_page(request):
+    # Here you would implement the logic to verify the token and set the new password.
+    # This is a placeholder for demonstration purposes.
+    return render(request, 'main/recover_password_verify_page.html')
+
