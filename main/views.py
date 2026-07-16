@@ -10,11 +10,92 @@ from django.views.decorators.http import require_POST
 from django.contrib.auth import authenticate, login, logout
 from .models import Order, FactoryOrder, Transport
 from django.contrib.auth.decorators import login_required
+from django.core import signing
+from django.contrib.auth.models import User
+from .services import (
+    generate_and_send_recovery_code, verify_recovery_code,
+    RecoveryCodeLocked, NoPhoneNumberOnFile,
+)
 
 # Deposit types are checked in this order — Deposit is resolved before
 # Final Payment, so the card shows whichever is still outstanding first.
 DEPOSIT_TYPE_PRIORITY = {"Deposit": 0, "Final Payment": 1, "Full Payment": 0}
+RESET_TOKEN_SALT = "password-recovery"
+RESET_TOKEN_MAX_AGE_SECONDS = 600 # 5 minutes
 
+def recover_password_request(request):
+    error = None
+
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+        try:
+            user = User.objects.get(username=username)
+            generate_and_send_recovery_code(user)
+            request.session["recovery_username"] = username
+            return redirect("recover_password_verify_page")
+        except User.DoesNotExist:
+            # Don't reveal whether the username exists.
+            request.session["recovery_username"] = username
+            return redirect("recover_password_verify_page")
+        except NoPhoneNumberOnFile:
+            error = "No phone number on file for this account. Contact an admin."
+        except RecoveryCodeLocked as exc:
+            error = f"Too many attempts. Try again after {exc.locked_until.strftime('%H:%M')}."
+
+    return render(request, "main/recover_password_request_page.html", {"error": error})
+
+
+def recover_password_verify(request):
+    username = request.session.get("recovery_username")
+    if not username:
+        return redirect("recover_password_request_page")
+
+    error = None
+
+    if request.method == "POST":
+        code = request.POST.get("code", "").strip()
+        try:
+            user = User.objects.get(username=username)
+            if verify_recovery_code(user, code):
+                token = signing.dumps({"user_id": user.id}, salt=RESET_TOKEN_SALT)
+                request.session["password_reset_token"] = token
+                del request.session["recovery_username"]
+                return redirect("set_new_password_page")
+        except User.DoesNotExist:
+            pass
+            
+        error = "Invalid or expired code."
+
+    return render(request, "main/recover_password_verify_page.html", {"error": error, "username": username})
+
+
+def set_new_password(request):
+    token = request.session.get("password_reset_token")
+    if not token:
+        return redirect("login_page")
+
+    try:
+        data = signing.loads(token, salt=RESET_TOKEN_SALT, max_age=RESET_TOKEN_MAX_AGE_SECONDS)
+    except signing.BadSignature:
+        return redirect("login_page")
+
+    user = User.objects.get(pk=data["user_id"])
+    error = None
+
+    if request.method == "POST":
+        password1 = request.POST.get("password1", "")
+        password2 = request.POST.get("password2", "")
+        if len(password1) < 8:
+            error = "Password must be at least 8 characters."
+        elif password1 != password2:
+            error = "Passwords don't match."
+        else:
+            user.set_password(password1)
+            user.save()
+            del request.session["password_reset_token"]
+            return redirect("login_page")
+
+    return render(request, "main/set_new_password_page.html", {"error": error, "user": user})
 
 def _compute_deposit_status(deposits, today):
     deposits = list(deposits)
@@ -334,15 +415,3 @@ def main_offer_page(request):
     }
     
     return render(request, 'main/main_offer_page.html', {"order_cards": order_cards, "stats": stats})
-
-def recover_password_request_page(request):
-    return render(request, 'main/recover_password_request_page.html')
-
-def set_new_password_page(request):
-    return render(request, 'main/set_new_password_page.html')
-
-def recover_password_verify_page(request):
-    # Here you would implement the logic to verify the token and set the new password.
-    # This is a placeholder for demonstration purposes.
-    return render(request, 'main/recover_password_verify_page.html')
-
