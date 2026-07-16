@@ -1,6 +1,13 @@
+from django.utils import timezone
 from django.db import models
+from django.conf import settings
+
 
 REMINDER_DAYS_BEFORE = 7
+RECOVERY_CODE_VALID_MINUTES = 10
+RECOVERY_RATE_LIMIT_WINDOW_MINUTES = 5
+RECOVERY_RATE_LIMIT_MAX_ATTEMPTS = 3
+RECOVERY_LOCKOUT_HOURS = 2
 
 
 class Client(models.Model):
@@ -180,3 +187,43 @@ class DepositClient(models.Model):
 
     def __str__(self):
         return f"Client deposit for {self.client_order} - {self.deposit_type}"
+    
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile"
+    )
+    phone_number = models.CharField(
+        max_length=20, blank=True,
+        help_text="E.164 format, e.g. +37060012345 — required for password recovery via SMS."
+    )
+
+    def __str__(self):
+        return f"Profile for {self.user.username}"
+
+
+class RecoveryCode(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recovery_codes"
+    )
+    code_hash = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used_at = models.DateTimeField(null=True, blank=True)
+
+    def is_valid(self):
+        return self.used_at is None and timezone.now() < self.expires_at
+
+    def __str__(self):
+        return f"Recovery code for {self.user.username} (expires {self.expires_at})"
+
+
+class RecoveryLockout(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recovery_lockout"
+    )
+    attempt_count = models.PositiveIntegerField(default=0)
+    window_started_at = models.DateTimeField(null=True, blank=True)
+    locked_until = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Recovery lockout state for {self.user.username}"
