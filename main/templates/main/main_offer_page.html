@@ -141,7 +141,7 @@
                             {% endif %}
                             <span>{{ card.transport_status.label }}</span>
                             <span class="cursor-help text-gray-400" title="Courier: {{ card.transport_status.courier|default:'Not assigned yet' }}">ⓘ</span>
-                            {% if card.transport_status.reminder_sent %}
+                            {% if card.transport_status.reminder_sent and card.transport_status.token != 'confirmed' %}
                             <span title="Transport reminder sent"
                                 class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 cursor-help">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24"
@@ -151,6 +151,15 @@
                                 </svg>
                                 Transport reminder sent
                             </span>
+                                {% elif card.transport_status.token != 'confirmed' %}
+                                <form method="post" action="{% url 'mark_transport_reminder_sent' card.order.id %}" class="mark-sent-form"
+                                    data-target="">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                        class="text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline cursor-pointer">
+                                        Mark sent
+                                    </button>
+                                </form>
                             {% endif %}
                         </div>
                     </div>
