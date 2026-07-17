@@ -16,6 +16,8 @@ from .services import (
     generate_and_send_recovery_code, verify_recovery_code,
     RecoveryCodeLocked, NoPhoneNumberOnFile,
 )
+import functools
+from .models import ApiToken, FactoryOrder
 
 # Deposit types are checked in this order — Deposit is resolved before
 # Final Payment, so the card shows whichever is still outstanding first.
@@ -306,6 +308,17 @@ def mark_reminder_sent(request, kind, factory_order_id):
         return JsonResponse({"ok": True})
     return redirect("main_offer_page")
 
+@login_required(login_url='login_page')
+@require_POST
+def mark_transport_reminder_sent(request, order_id):
+    transport = get_object_or_404(Transport, order_id=order_id)
+    transport.is_reminder_sent = True
+    transport.save()
+
+    if request.headers.get("X-Requested-With") == "fetch":
+        return JsonResponse({"ok": True})
+    return redirect("main_offer_page")
+
 def _is_order_complete(client_status, factory_status, transport_status,
                         furniture_status, package_clarification_status):
     return (
@@ -441,3 +454,100 @@ def main_offer_page(request):
         "show_completed": show_completed,
         "completed_orders_count": completed_orders_count,
         })
+    
+def api_token_required(view_func):
+    @functools.wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return JsonResponse({"error": "Missing or malformed Authorization header"}, status=401)
+
+        token_value = auth_header.removeprefix("Bearer ").strip()
+        try:
+            token = ApiToken.objects.get(token=token_value, is_active=True)
+        except ApiToken.DoesNotExist:
+            return JsonResponse({"error": "Invalid or revoked token"}, status=403)
+
+        token.last_used_at = timezone.now()
+        token.save(update_fields=["last_used_at"])
+
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+@api_token_required
+def reminders_due_api(request):
+    today = timezone.now().date()
+    due = []
+
+    orders = Order.objects.select_related("client").prefetch_related(
+        "clientorder_set__depositclient_set__deposit_type",
+        "factoryorder_set__depositfactory_set__deposit_type",
+        "transport",
+    )
+
+    for order in orders:
+        client_order = order.clientorder_set.first()
+        factory_order = order.factoryorder_set.first()
+        transport = getattr(order, "transport", None)
+
+        client_status = _compute_deposit_status(
+            client_order.depositclient_set.all() if client_order else [], today
+        )
+        factory_status = _compute_deposit_status(
+            factory_order.depositfactory_set.all() if factory_order else [], today
+        )
+        transport_status = _compute_transport_status(transport, today)
+        furniture_status = _compute_furniture_status(factory_order, today)
+        package_status = _compute_package_clarification_status(factory_order, today)
+
+        # --- Client deposit ---
+        if (
+            not client_status["paid"]
+            and not client_status["reminder_sent"]
+            and client_status["days_remaining"] is not None
+            and client_status["days_remaining"] <= 7
+        ):
+            due.append({
+                "id": f"client-deposit-{order.id}",
+                "message": f"{order.contract_number}: Client {client_status['label']}",
+            })
+
+        # --- Factory deposit ---
+        if (
+            not factory_status["paid"]
+            and not factory_status["reminder_sent"]
+            and factory_status["days_remaining"] is not None
+            and factory_status["days_remaining"] <= 7
+        ):
+            due.append({
+                "id": f"factory-deposit-{order.id}",
+                "message": f"{order.contract_number}: Factory {factory_status['label']}",
+            })
+
+        # --- Transport ---
+        if (
+            transport_status["token"] != "confirmed"
+            and not transport_status["reminder_sent"]
+            and transport_status["days_remaining"] is not None
+            and transport_status["days_remaining"] <= 7
+        ):
+            due.append({
+                "id": f"transport-{order.id}",
+                "message": f"{order.contract_number}: {transport_status['label']}",
+            })
+
+        # --- Furniture (unchanged) ---
+        if furniture_status and furniture_status["due"] and not furniture_status["reminder_sent"]:
+            due.append({
+                "id": f"furniture-{factory_order.id}",
+                "message": f"{order.contract_number}: {furniture_status['label']}",
+            })
+
+        # --- Package clarification (unchanged) ---
+        if package_status and package_status["due"] and not package_status["reminder_sent"]:
+            due.append({
+                "id": f"package-{factory_order.id}",
+                "message": f"{order.contract_number}: {package_status['label']}",
+            })
+
+    return JsonResponse({"due": due})

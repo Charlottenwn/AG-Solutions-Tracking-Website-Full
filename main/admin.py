@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from .models import (
-    Client, Order, Transport,
+    ApiToken, Client, Order, Transport,
     FactoryOrder, ClientOrder,
     DepositType, DepositFactory, DepositClient,
     UserProfile, 
@@ -102,6 +102,11 @@ class UserProfileInline(admin.StackedInline):
 
 class CustomUserAdmin(UserAdmin):
     inlines = [UserProfileInline]
+    
+@admin.register(ApiToken)
+class ApiTokenAdmin(admin.ModelAdmin):
+    list_display = ["label", "token", "is_active", "last_used_at", "created_at"]
+    readonly_fields = ["token", "last_used_at", "created_at"]    
 
 admin.site.register(Client)
 admin.site.register(Order)

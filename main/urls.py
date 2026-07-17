@@ -9,4 +9,6 @@ urlpatterns = [
     path('recover_password_request_page/', views.recover_password_request, name='recover_password_request_page'),
     path('set_new_password_page/', views.set_new_password, name='set_new_password_page'),
     path('recover_password_verify_page/', views.recover_password_verify, name='recover_password_verify_page'),
+    path('reminders_due_api/', views.reminders_due_api, name='reminders_due_api'),
+    path('mark_transport_reminder_sent/<int:order_id>/', views.mark_transport_reminder_sent, name='mark_transport_reminder_sent'),
 ]

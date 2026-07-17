@@ -1,6 +1,7 @@
 from django.utils import timezone
 from django.db import models
 from django.conf import settings
+import secrets as secrets_module
 
 
 REMINDER_DAYS_BEFORE = 7
@@ -227,3 +228,21 @@ class RecoveryLockout(models.Model):
 
     def __str__(self):
         return f"Recovery lockout state for {self.user.username}"
+    
+class ApiToken(models.Model):
+    label = models.CharField(
+        max_length=100,
+        help_text="Which machine/coworker this token belongs to, e.g. 'Jonas — office PC'."
+    )
+    token = models.CharField(max_length=64, unique=True, editable=False)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if not self.token:
+            self.token = secrets_module.token_hex(32)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.label} ({'active' if self.is_active else 'revoked'})"
