@@ -306,9 +306,20 @@ def mark_reminder_sent(request, kind, factory_order_id):
         return JsonResponse({"ok": True})
     return redirect("main_offer_page")
 
+def _is_order_complete(client_status, factory_status, transport_status,
+                        furniture_status, package_clarification_status):
+    return (
+        client_status["paid"]
+        and factory_status["paid"]
+        and transport_status["token"] == "confirmed"
+        and (furniture_status is None or furniture_status["reminder_sent"])
+        and (package_clarification_status is None or package_clarification_status["reminder_sent"])
+    )
+    
 @login_required(login_url='login_page')
 def main_offer_page(request):
     today = timezone.now().date()
+    show_completed = request.GET.get("show_completed") == "1"
 
     orders = (
         Order.objects.select_related("client")
@@ -321,6 +332,8 @@ def main_offer_page(request):
     )
 
     order_cards = []
+    completed_orders_count = 0
+    
     for order in orders:
         client_order = order.clientorder_set.first()
         factory_order = order.factoryorder_set.first()
@@ -336,6 +349,14 @@ def main_offer_page(request):
         furniture_status = _compute_furniture_status(factory_order, today)
         package_clarification_status = _compute_package_clarification_status(factory_order, today)
         
+        is_complete = _is_order_complete(client_status, factory_status, transport_status,
+                                            furniture_status, package_clarification_status
+                                        )
+        if is_complete:
+            completed_orders_count += 1
+            if not show_completed:
+                continue
+
         search_text = f"{order.contract_number} {order.client.client_name}".lower()
         furniture_token = f"furniture-{furniture_status['token']}" if furniture_status else ""
         package_token = f"package-{package_clarification_status['token']}" if package_clarification_status else ""
@@ -414,4 +435,9 @@ def main_offer_page(request):
         "furniture_package_reminders_due": furniture_package_reminders_due,
     }
     
-    return render(request, 'main/main_offer_page.html', {"order_cards": order_cards, "stats": stats})
+    return render(request, 'main/main_offer_page.html', {
+        "order_cards": order_cards,
+        "stats": stats,
+        "show_completed": show_completed,
+        "completed_orders_count": completed_orders_count,
+        })
