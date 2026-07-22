@@ -18,7 +18,7 @@ requests-oauthlib==2.0.0
 sqlparse==0.5.5
 tzdata==2026.2
 urllib3==2.7.0
-celery
-django-celery-beat
-django-celery-results
-sqlalchemy
+celery==5.6.3
+django-celery-beat==2.9.0
+django-celery-results==2.6.0
+sqlalchemy==2.0.51
