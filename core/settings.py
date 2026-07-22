@@ -74,6 +74,7 @@ CELERY_ENABLE_UTC = False
 DJANGO_CELERY_BEAT_TZ_AWARE = True
 CELERY_RESULT_EXTENDED = True
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+CELERY_RESULT_EXPIRES = 7 * 86400 #7 * 1d = 7days, consult with boss for appropriate time
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
