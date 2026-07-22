@@ -18,6 +18,17 @@ def read_secret(path):
     with open(path) as f:
         return f.read().strip()
     
+# Internationalization
+# https://docs.djangoproject.com/en/6.0/topics/i18n/
+
+LANGUAGE_CODE = 'en-us'
+
+TIME_ZONE = 'Europe/Vilnius'
+
+USE_I18N = True
+
+USE_TZ = True    
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -46,8 +57,23 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_celery_beat',
+    'django_celery_results',
     'main',
 ]
+
+CELERY_BROKER_URL = "sqla+postgresql://{user}:{password}@db:5432/{db}".format(
+    user=read_secret("/app/secrets/postgres_user.txt"),
+    password=read_secret("/app/secrets/postgres_password.txt"),
+    db=read_secret("/app/secrets/postgres_db.txt"),
+)
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_CACHE_BACKEND = "django-cache"
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_ENABLE_UTC = False
+DJANGO_CELERY_BEAT_TZ_AWARE = True
+CELERY_RESULT_EXTENDED = True
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -115,16 +141,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'Europe/Vilnius'
-
-USE_I18N = True
-
-USE_TZ = True
 
 SESSION_COOKIE_AGE = 60 * 60 * 8 # 8 hours in seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
