@@ -62,6 +62,8 @@ INSTALLED_APPS = [
     'main',
 ]
 
+# Celery setup config
+
 CELERY_BROKER_URL = "sqla+postgresql://{user}:{password}@db:5432/{db}".format(
     user=read_secret("/app/secrets/postgres_user.txt"),
     password=read_secret("/app/secrets/postgres_password.txt"),
@@ -74,7 +76,21 @@ CELERY_ENABLE_UTC = False
 DJANGO_CELERY_BEAT_TZ_AWARE = True
 CELERY_RESULT_EXTENDED = True
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
-CELERY_RESULT_EXPIRES = 7 * 86400 #7 * 1d = 7days, consult with boss for appropriate time
+CELERY_RESULT_EXPIRES = 60 * 60 * 24 * 7 #consult with boss for appropriate time
+
+# Celery worker limits
+
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 100
+CELERY_WORKER_MAX_MEMORY_PER_CHILD = 150000
+CELERY_TASK_TIME_LIMIT = 300
+CELERY_TASK_SOFT_TIME_LIMIT = 240
+
+# Celery worker behavior
+ 
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -140,9 +156,6 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
-
-
 
 SESSION_COOKIE_AGE = 60 * 60 * 8 # 8 hours in seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
