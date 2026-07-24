@@ -13,7 +13,7 @@ services:
       - PYTHONUNBUFFERED=1
       - GOOGLE_SHEETS_CREDENTIALS_PATH=/app/secrets/google_sheets_key.json
       - GOOGLE_SHEET_ID_PATH=/app/secrets/google_sheet_id.json
-      - DEBUG=1
+      - DEBUG=True
 
     depends_on:
       - db
