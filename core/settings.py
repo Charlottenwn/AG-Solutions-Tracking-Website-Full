@@ -40,9 +40,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = read_secret("/app/secrets/django_secret_key.txt")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = DEBUG = os.getenv("DEBUG", "0") == "1"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['raspberry-pi-computer', 'localhost']
 
 LOGIN_URL = 'login_page'
 LOGIN_REDIRECT_URL = 'main_offer_page'
@@ -64,11 +64,10 @@ INSTALLED_APPS = [
 
 # Celery setup config
 
-CELERY_BROKER_URL = "sqla+postgresql://{user}:{password}@db:5432/{db}".format(
-    user=read_secret("/app/secrets/postgres_user.txt"),
-    password=read_secret("/app/secrets/postgres_password.txt"),
-    db=read_secret("/app/secrets/postgres_db.txt"),
-)
+CELERY_BROKER_URL = ( f"sqla+postgresql://" f"{read_secret('/app/secrets/postgres_user.txt')}:"
+                     f"{read_secret('/app/secrets/postgres_password.txt')}" 
+                     f"@db:5432/"
+                     f"{read_secret('/app/secrets/postgres_db.txt')}" )
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_CACHE_BACKEND = "django-cache"
 CELERY_TIMEZONE = TIME_ZONE
@@ -165,3 +164,4 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"
