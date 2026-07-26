@@ -15,8 +15,11 @@ import os
 from pathlib import Path
 
 def read_secret(path):
-    with open(path) as f:
-        return f.read().strip()
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        raise RuntimeError(f"Required secret file not found: {path}")
     
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
@@ -40,7 +43,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = read_secret("/app/secrets/django_secret_key.txt")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = DEBUG = os.getenv("DEBUG", "0") == "1"
+DEBUG = os.getenv("DEBUG", "0") == "1"
 
 ALLOWED_HOSTS = ['raspberry-pi-computer', 'localhost']
 
