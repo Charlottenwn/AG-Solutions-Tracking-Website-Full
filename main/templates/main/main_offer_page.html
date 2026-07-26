@@ -101,7 +101,7 @@
             </div>
 
             <!-- Stat Cards -->
-            <div class="grid grid-cols-4 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total orders</p>
                     <p class="text-2xl font-medium text-gray-900 dark:text-white">{{ stats.total_orders }}</p>
@@ -163,10 +163,10 @@
                             {% endif %}
                         </div>
                     </div>
-                    <div class="flex flex-col items-end gap-1.5 shrink-0">
+                    <div class="flex flex-col items-end gap-1.5 w-full">
                         <!-- Client deposit -->
                         <span
-                            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full {{ card.client_status.token|deposit_badge_class }}">
+                            class="inline-flex max-w-full whitespace-normal break-words items-start text-xs font-medium px-2.5 py-1 rounded-full {{ card.client_status.token|deposit_badge_class }}">
                             {% if card.client_status.paid %}Client Deposit Paid ✓{% else %}Client {{ card.client_status.label }}{% endif %}
                         </span>
                         {% if not card.client_status.paid %}
@@ -191,7 +191,7 @@
                         <div class="w-full border-t border-gray-200 dark:border-gray-600 my-0.5"></div>
                         <!-- Factory deposit -->
                         <span
-                            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full {{ card.factory_status.token|deposit_badge_class }}">
+                            class="inline-flex max-w-full whitespace-normal break-words items-start text-xs font-medium px-2.5 py-1 rounded-full {{ card.factory_status.token|deposit_badge_class }}">
                             {% if card.factory_status.paid %}Factory Deposit Paid ✓{% else %}Factory {{ card.factory_status.label }}{% endif %}
                         </span>
                         {% if not card.factory_status.paid %}
@@ -217,7 +217,7 @@
  
                         {% if card.furniture_status and not card.furniture_status.reminder_sent %}
                         <span id="furniture-badge-{{ card.factory_order.id }}"
-                            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full {{ card.furniture_status.token|deposit_badge_class }}">
+                            class="inline-flex max-w-full whitespace-normal break-words items-start text-xs font-medium px-2.5 py-1 rounded-full {{ card.furniture_status.token|deposit_badge_class }}">
                             {{ card.furniture_status.label }}
                         </span>
                         <form method="post" action="{% url 'mark_reminder_sent' 'furniture' card.factory_order.id %}" class="mark-sent-form"
@@ -234,7 +234,7 @@
  
                         {% if card.package_clarification_status and not card.package_clarification_status.reminder_sent %}
                         <span id="package-badge-{{ card.factory_order.id }}"
-                            class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full {{ card.package_clarification_status.token|deposit_badge_class }}">
+                            class="inline-flex max-w-full whitespace-normal break-words items-start text-xs font-medium px-2.5 py-1 rounded-full {{ card.package_clarification_status.token|deposit_badge_class }}">
                             {{ card.package_clarification_status.label }}
                         </span>
                         <form method="post" action="{% url 'mark_reminder_sent' 'package' card.factory_order.id %}" class="mark-sent-form"
