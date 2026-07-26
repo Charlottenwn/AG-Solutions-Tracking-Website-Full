@@ -45,7 +45,11 @@ SECRET_KEY = read_secret("/app/secrets/django_secret_key.txt")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "0") == "1"
 
-ALLOWED_HOSTS = ['raspberry-pi-computer', 'localhost']
+ALLOWED_HOSTS = [
+    h.strip() for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()
+]
+if DEBUG and not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ["localhost", "127.0.0.1"]
 
 LOGIN_URL = 'login_page'
 LOGIN_REDIRECT_URL = 'main_offer_page'
@@ -67,10 +71,14 @@ INSTALLED_APPS = [
 
 # Celery setup config
 
-CELERY_BROKER_URL = ( f"sqla+postgresql://" f"{read_secret('/app/secrets/postgres_user.txt')}:"
-                     f"{read_secret('/app/secrets/postgres_password.txt')}" 
-                     f"@db:5432/"
-                     f"{read_secret('/app/secrets/postgres_db.txt')}" )
+CELERY_BROKER_URL = (
+    f"sqla+postgresql://" 
+    f"{read_secret('/app/secrets/postgres_user.txt')}:"
+    f"{read_secret('/app/secrets/postgres_password.txt')}" 
+    f"@db:5432/"
+    f"{read_secret('/app/secrets/postgres_db.txt')}"
+    )
+
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_CACHE_BACKEND = "django-cache"
 CELERY_TIMEZONE = TIME_ZONE
@@ -162,6 +170,12 @@ AUTH_PASSWORD_VALIDATORS = [
 SESSION_COOKIE_AGE = 60 * 60 * 8 # 8 hours in seconds
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
+SESSION_COOKIE_HTTPONLY = True
+X_FRAME_OPTIONS = 'DENY'
+USE_X_FORWARDED_HOST = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
