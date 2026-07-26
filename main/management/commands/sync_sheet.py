@@ -202,10 +202,6 @@ class Command(BaseCommand):
             
             seen_contracts.add(contract_number)
             
-            if not contract_number:
-                skipped += 1
-                continue
-            
             try:
                 with transaction.atomic():
                     self._sync_row(row, contract_number)
@@ -242,6 +238,8 @@ class Command(BaseCommand):
         c = SHEET_COLUMNS
 
         client_name = str(row.get(c["client"], "")).strip()
+        if not client_name:
+            raise ValueError("missing client name")
         client_obj, _ = Client.objects.get_or_create(client_name=client_name)
 
         order, _ = Order.objects.update_or_create(
@@ -342,7 +340,7 @@ class Command(BaseCommand):
                 client_order=client_order,
                 deposit_type=deposit_type_full,
                 defaults={
-                    "amount": paid_amount,
+                    "amount": total,
                     "payment_due_by": parse_date(row.get(c["client_final_due_date"])),
                     "is_paid": is_paid(paid_amount, total)
                 },
@@ -381,6 +379,13 @@ class Command(BaseCommand):
             ).delete()
             
         elif payment_type == "":
+            self.stderr.write(
+                self.style.WARNING(
+                    f"Contract {contract_number} has client amounts filled in "
+                    f"but no MOKĖJIMO TIPAS selected — clearing existing client "
+                    f"deposit tracking for this order until a payment type is set."
+                )
+            )
             DepositClient.objects.filter(client_order=client_order).delete()
             
         else:
@@ -420,7 +425,7 @@ class Command(BaseCommand):
             deposit_type=deposit_type_final,
             defaults={
                 "amount": factory_final_amount,
-                "is_paid": is_paid(factory_final_amount, factory_order_amount),
+                "is_paid": factory_fully_paid or is_paid(factory_final_amount, factory_order_amount),
             },
         )
 
