@@ -1,13 +1,23 @@
 services:
+
+  bws_init:
+    build: ./bws
+    volumes:
+      - ./secrets/bws_token.txt:/secrets/bws_token.txt:ro
+      - runtime_secrets:/runtime-secrets
+    restart: "no"
+
   migrate:
     build: .
     command: python manage.py migrate --noinput
     volumes:
-      - ./secrets:/app/secrets:ro
+      - runtime_secrets:/app/secrets:ro
     environment:
       - GOOGLE_SHEETS_CREDENTIALS_PATH=/app/secrets/google_sheets_key.json
       - GOOGLE_SHEET_ID_PATH=/app/secrets/google_sheet_id.json
     depends_on:
+      bws_init:
+        condition: service_completed_successfully
       db:
         condition: service_healthy 
 
@@ -18,7 +28,7 @@ services:
              gunicorn core.wsgi:application --bind 0.0.0.0:8000"
     volumes:
       - static_volume:/app/staticfiles
-      - ./secrets:/app/secrets:ro
+      - runtime_secrets:/app/secrets:ro
     environment:
       - PYTHONUNBUFFERED=1
       - GOOGLE_SHEETS_CREDENTIALS_PATH=/app/secrets/google_sheets_key.json
@@ -26,6 +36,8 @@ services:
       - DEBUG=False
       - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
     depends_on:
+      bws_init:
+        condition: service_completed_successfully
       migrate:
         condition: service_completed_successfully
     restart: unless-stopped
@@ -35,7 +47,7 @@ services:
     image: postgres:18
     volumes:
       - postgres_data:/var/lib/postgresql
-      - ./secrets:/run/secrets:ro
+      - runtime_secrets:/run/secrets:ro
     environment:
       - POSTGRES_USER_FILE=/run/secrets/postgres_user.txt
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password.txt
@@ -45,13 +57,16 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    depends_on:
+      bws_init:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   celery_worker:
     build: .
     command: celery -A core worker --loglevel=info --concurrency=1
     volumes:
-      - ./secrets:/app/secrets:ro
+      - runtime_secrets:/app/secrets:ro
     environment:
       - GOOGLE_SHEETS_CREDENTIALS_PATH=/app/secrets/google_sheets_key.json
       - GOOGLE_SHEET_ID_PATH=/app/secrets/google_sheet_id.json
@@ -64,7 +79,7 @@ services:
     build: .
     command: celery -A core beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     volumes:
-      - ./secrets:/app/secrets:ro
+      - runtime_secrets:/app/secrets:ro
     environment:
       - GOOGLE_SHEETS_CREDENTIALS_PATH=/app/secrets/google_sheets_key.json
       - GOOGLE_SHEET_ID_PATH=/app/secrets/google_sheet_id.json
@@ -80,7 +95,7 @@ services:
     volumes:
       - static_volume:/static
       - ./nginx.conf:/etc/nginx/conf.d/default.conf
-      - ./secrets/.htpasswd:/etc/nginx/.htpasswd:ro
+      - runtime_secrets:/etc/nginx/secrets:ro
     depends_on:
       - web
     restart: unless-stopped
@@ -88,3 +103,4 @@ services:
 volumes:
   postgres_data:
   static_volume:
+  runtime_secrets:
