@@ -34,7 +34,7 @@ services:
       - GOOGLE_SHEETS_CREDENTIALS_PATH=/app/secrets/google_sheets_key.json
       - GOOGLE_SHEET_ID_PATH=/app/secrets/google_sheet_id.json
       - DEBUG=False
-      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.162
     depends_on:
       bws_init:
         condition: service_completed_successfully
