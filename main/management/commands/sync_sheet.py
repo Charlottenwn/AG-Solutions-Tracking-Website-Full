@@ -32,6 +32,7 @@ from decimal import Decimal, InvalidOperation
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from collections import Counter
+import json
 
 from main.models import (
     Client, Order, ClientOrder, FactoryOrder,
@@ -149,90 +150,100 @@ class Command(BaseCommand):
     help = "Sync orders from the Google Sheet (Sheet1) into the database."
 
     def handle(self, *args, **options):
+        self._warnings = []  # collected across handle() and _sync_row()
+
         rows = get_sheet_rows()
-        
+
         if not rows:
-            self.stderr.write(
-                self.style.ERROR(
-                    "Sheet returned 0 rows — aborting sync without deleting "
-                    "anything from the database. This usually means the "
-                    "sheet was accidentally cleared, the wrong tab/sheet ID "
-                    "is configured, or the Sheets API call failed silently. "
-                    "If the sheet is genuinely meant to be empty, clear the "
-                    "database manually instead of relying on sync."
-                )
+            msg = (
+                "Sheet returned 0 rows — aborting sync without deleting "
+                "anything from the database. This usually means the "
+                "sheet was accidentally cleared, the wrong tab/sheet ID "
+                "is configured, or the Sheets API call failed silently. "
+                "If the sheet is genuinely meant to be empty, clear the "
+                "database manually instead of relying on sync."
             )
-            return
+            self.stderr.write(self.style.ERROR(msg))
+            return {
+                "status": "aborted",
+                "reason": msg,
+                "synced": 0,
+                "skipped": 0,
+                "duplicates": 0,
+                "deleted": 0,
+                "warnings": [],
+            }
 
         synced = 0
         skipped = 0
         seen_contracts = set()
-        
-        
-        # Count contract occurrences in the sheet
+
         contract_numbers = [
-        str(r.get(SHEET_COLUMNS["contract_number"], "")).strip()
-        for r in rows
-        if str(r.get(SHEET_COLUMNS["contract_number"], "")).strip()
+            str(r.get(SHEET_COLUMNS["contract_number"], "")).strip()
+            for r in rows
+            if str(r.get(SHEET_COLUMNS["contract_number"], "")).strip()
         ]
-        
 
         counts = Counter(contract_numbers)
-
-        # Count extra occurrences (2 same rows = 1 duplicate)
         duplicate_count = sum(count - 1 for count in counts.values() if count > 1)
         duplicated_contracts = [contract for contract, count in counts.items() if count > 1]
 
-        for row in rows:   
+        for row in rows:
             contract_number = str(row.get(SHEET_COLUMNS["contract_number"], "")).strip()
-            
+
             if not contract_number:
                 skipped += 1
                 continue
 
             if contract_number in duplicated_contracts:
-                # Ambiguous — appears more than once in the sheet. Don't
-                # guess which row is correct. Leave the existing DB record
-                # (if any) untouched by still marking it "seen" so the
-                # end-of-sync cleanup doesn't delete it, but skip actually
-                # syncing any data for it until the sheet is fixed.
                 seen_contracts.add(contract_number)
                 skipped += 1
                 continue
-            
+
             seen_contracts.add(contract_number)
-            
+
             try:
                 with transaction.atomic():
                     self._sync_row(row, contract_number)
                 synced += 1
-            
+
             except Exception as exc:
                 skipped += 1
-                self.stderr.write(
-                    self.style.WARNING(
-                        f"Skipped row '{contract_number}': {exc}"
-        )
-    )
-                
+                msg = f"Skipped row '{contract_number}': {exc}"
+                self.stderr.write(self.style.WARNING(msg))
+                self._warnings.append(msg)
+
         deleted_count, _ = (
-        Order.objects
-        .exclude(contract_number__in=seen_contracts)
-        .delete()
-    )
-        
-        if duplicated_contracts:
-            self.stderr.write(
-                self.style.WARNING(
-                    f"Found duplicate contract numbers, skipped syncing "
-                    f"them (existing data left untouched): "
-                    f"{', '.join(sorted(duplicated_contracts))}"
-                )
-            )
-            
-        self.stdout.write(
-            self.style.SUCCESS(f"Sync complete. {synced} rows synced, {skipped} skipped, {duplicate_count} duplicates, {deleted_count} deleted.")
+            Order.objects
+            .exclude(contract_number__in=seen_contracts)
+            .delete()
         )
+
+        if duplicated_contracts:
+            msg = (
+                f"Found duplicate contract numbers, skipped syncing "
+                f"them (existing data left untouched): "
+                f"{', '.join(sorted(duplicated_contracts))}"
+            )
+            self.stderr.write(self.style.WARNING(msg))
+            self._warnings.append(msg)
+
+        summary = (
+            f"Sync complete. {synced} rows synced, {skipped} skipped, "
+            f"{duplicate_count} duplicates, {deleted_count} deleted."
+        )
+        self.stdout.write(self.style.SUCCESS(summary))
+
+        result = {
+            "status": "success",
+            "summary": summary,
+            "synced": synced,
+            "skipped": skipped,
+            "duplicates": duplicate_count,
+            "deleted": deleted_count,
+            "warnings": self._warnings,
+        }
+        return json.dumps(result)
 
     def _sync_row(self, row, contract_number):
         c = SHEET_COLUMNS
@@ -303,12 +314,12 @@ class Command(BaseCommand):
             DepositClient.objects.filter(client_order=client_order).delete()
             
         elif client_total is not None and client_total < 0:
-            self.stderr.write(
-                self.style.WARNING(
+            msg = (
                     f"Negative client total amount for contract {contract_number}: {client_total}."
                     f" Treating as no client deposit info."
                 )
-            )
+            self.stderr.write(self.style.WARNING(msg))
+            self._warnings.append(msg)
             client_total = None
             client_deposit_amount = None
             client_final_amount = None
@@ -379,13 +390,13 @@ class Command(BaseCommand):
             ).delete()
             
         elif payment_type == "":
-            self.stderr.write(
-                self.style.WARNING(
+            msg = (
                     f"Contract {contract_number} has client amounts filled in "
                     f"but no MOKĖJIMO TIPAS selected — clearing existing client "
                     f"deposit tracking for this order until a payment type is set."
                 )
-            )
+            self.stderr.write(self.style.WARNING(msg))
+            self._warnings.append(msg)
             DepositClient.objects.filter(client_order=client_order).delete()
             
         else:

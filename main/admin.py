@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
+from django_celery_results.models import TaskResult
+from django.utils.html import format_html
 from .models import (
     ApiToken, Client, Order, Transport,
     FactoryOrder, ClientOrder,
@@ -106,7 +108,20 @@ class CustomUserAdmin(UserAdmin):
 @admin.register(ApiToken)
 class ApiTokenAdmin(admin.ModelAdmin):
     list_display = ["label", "token", "is_active", "last_used_at", "created_at"]
-    readonly_fields = ["token", "last_used_at", "created_at"]    
+    readonly_fields = ["token", "last_used_at", "created_at"]
+
+admin.site.unregister(TaskResult) # unregister the auto-registered TaskResultAdmin by django_celery_result
+   
+@admin.register(TaskResult)
+class CustomTaskResultAdmin(admin.ModelAdmin):
+    list_display = ["task_name", "status", "date_done", "result_summary"]
+
+    def result_summary(self, obj):
+        if not obj.result:
+            return "—"
+        return format_html('<span title="{}">ⓘ</span>', obj.result)
+
+    result_summary.short_description = "Result" 
 
 admin.site.register(Client)
 admin.site.register(Order)
