@@ -1,5 +1,5 @@
 #!/bin/sh
-set -eu
+set -euo pipefail
 
 export BWS_SERVER_URL="https://vault.bitwarden.eu"
 export BWS_ACCESS_TOKEN="$(tr -d '\r\n' < /secrets/bws_token.txt)"
@@ -8,7 +8,7 @@ OUT=/runtime-secrets
 mkdir -p "$OUT"
 
 fetch() {
-    bws secret get "$1" --output json | jq -r '.value' > "$OUT/$2"
+    bws secret get "$1" --output json | jq -er '.value' > "$OUT/$2"
 }
 
 fetch c96ed7e4-0fb3-4dab-886b-b49301554c7b .htpasswd
