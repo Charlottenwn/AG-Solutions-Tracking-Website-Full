@@ -11,6 +11,16 @@ RECOVERY_RATE_LIMIT_MAX_ATTEMPTS = 3
 RECOVERY_LOCKOUT_HOURS = 0.01
 
 
+class Status(models.TextChoices):
+    PENDING = "pending", "Pending"
+    IN_PROGRESS = "in_progress", "In Progress"
+    COMPLETED = "completed", "Completed"
+    
+class PaymentType(models.TextChoices):
+    PAYMENT_TYPE_FULL = "visa_suma", "Visa suma"
+    PAYMENT_TYPE_DEPOSIT = "avansas", "Avansas"
+    PAYMENT_TYPE_AFTER_DELIVERY = "po_pristatymo", "Po pristatymo"
+    
 class Client(models.Model):
     client_name = models.CharField(max_length=100)
     client_contact_number = models.CharField(max_length=20, blank=True)
@@ -19,15 +29,10 @@ class Client(models.Model):
         return self.client_name
     
 class Order(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('completed', 'Completed'),
-        ('in_progress', 'In Progress'),
-    ]
     client = models.ForeignKey(Client, on_delete=models.PROTECT)
     contract_number = models.CharField(max_length=50, unique=True)
     country = models.CharField(max_length=100, blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -61,18 +66,14 @@ class Transport(models.Model):
         return f"Transport for {self.order}"
     
 class FactoryOrder(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('completed', 'Completed'),
-        ('in_progress', 'In Progress'),
-    ]
+
     order=models.ForeignKey(Order, on_delete=models.CASCADE)
     factory_name=models.CharField(max_length=100, blank=True)
     factory_order_number = models.CharField(max_length=100, blank=True)
     order_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     production_start_date = models.DateField(null=True, blank=True)
     production_end_date = models.DateField(null=True, blank=True)
-    status=models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    status=models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     created_at=models.DateTimeField(auto_now_add=True)
     
     furniture_reminder_date = models.DateField(null=True, blank=True, editable=False)
@@ -99,31 +100,16 @@ class FactoryOrder(models.Model):
         return f"Factory Order for {self.order}"
     
 class ClientOrder(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('completed', 'Completed'),
-        ('in_progress', 'In Progress'),
-    ]
-    
-    PAYMENT_TYPE_FULL = "Visa suma"
-    PAYMENT_TYPE_DEPOSIT = "Avansas"
-    PAYMENT_TYPE_AFTER_DELIVERY = "Po pristatymo"
-    
-    PAYMENT_TYPE_CHOICES = [
-        (PAYMENT_TYPE_FULL, "Visa suma"),
-        (PAYMENT_TYPE_DEPOSIT, "Avansas"),
-        (PAYMENT_TYPE_AFTER_DELIVERY, "Po pristatymo"),
-    ]
     
     order=models.ForeignKey(Order, on_delete=models.CASCADE)
     client=models.ForeignKey(Client, on_delete=models.PROTECT)
     client_representative = models.CharField(max_length=100, blank=True)
     client_contact = models.CharField(max_length=150, blank=True)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    status=models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    status=models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     created_at=models.DateTimeField(auto_now_add=True)
 
-    payment_type = models.CharField(max_length=50, choices=PAYMENT_TYPE_CHOICES, blank=True, default="")
+    payment_type = models.CharField(max_length=50, choices=PaymentType.choices, blank=True, default="")
     def __str__(self):
         return f"Client Order for {self.order}"
     
