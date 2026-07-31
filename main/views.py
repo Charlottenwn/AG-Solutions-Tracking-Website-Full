@@ -2,7 +2,13 @@ from cProfile import label
 from django.http import JsonResponse
 from django.shortcuts import redirect, get_object_or_404
 from django.views.decorators.http import require_POST
-from .models import RECOVERY_CODE_VALID_MINUTES, FactoryOrder
+from .constants import (
+    RECOVERY_CODE_VALID_MINUTES,
+    DEPOSIT_TYPE_PRIORITY,
+    RESET_TOKEN_SALT,
+    RESET_TOKEN_MAX_AGE_SECONDS
+    )
+from .models import FactoryOrder
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
@@ -18,12 +24,6 @@ from .services import (
 )
 import functools
 from .models import ApiToken, FactoryOrder
-
-# Deposit types are checked in this order — Deposit is resolved before
-# Final Payment, so the card shows whichever is still outstanding first.
-DEPOSIT_TYPE_PRIORITY = {"Deposit": 0, "Final Payment": 1, "Full Payment": 0}
-RESET_TOKEN_SALT = "password-recovery"
-RESET_TOKEN_MAX_AGE_SECONDS = 600 # 5 minutes
 
 def recover_password_request(request):
     error = None

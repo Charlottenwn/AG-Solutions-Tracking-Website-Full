@@ -2,14 +2,13 @@ import secrets
 import hashlib
 from datetime import timedelta
 from django.utils import timezone
-
-from .models import (
-    RecoveryCode, RecoveryLockout,
+from .constants import (
     RECOVERY_CODE_VALID_MINUTES,
     RECOVERY_RATE_LIMIT_WINDOW_MINUTES,
     RECOVERY_RATE_LIMIT_MAX_ATTEMPTS,
     RECOVERY_LOCKOUT_HOURS,
 )
+from .models import (RecoveryCode, RecoveryLockout)
 
 
 class RecoveryCodeLocked(Exception):

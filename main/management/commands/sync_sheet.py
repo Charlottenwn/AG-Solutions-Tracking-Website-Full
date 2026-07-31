@@ -33,18 +33,14 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from collections import Counter
 import json
-
 from main.models import (
     Client, Order, ClientOrder, FactoryOrder,
     DepositType, DepositClient, DepositFactory, Transport,
 )
+from constants import (DEPOSIT_TYPE_DEPOSIT, DEPOSIT_TYPE_FINAL, DEPOSIT_TYPE_FULL)
 
 SHEET_TAB_NAME = "Sheet1"
 HEADER_ROW = 6
-
-DEPOSIT_TYPE_DEPOSIT = "Deposit"
-DEPOSIT_TYPE_FINAL = "Final Payment"
-DEPOSIT_TYPE_FULL = "Full Payment"
 
 SHEET_COLUMNS = {
     "contract_number": "SUTARTIES NR.",

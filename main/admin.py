@@ -129,4 +129,3 @@ admin.site.register(ClientOrder)
 admin.site.register(DepositType)
 admin.site.unregister(User)
 admin.site.register(User, CustomUserAdmin)
-# Register your models here.

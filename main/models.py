@@ -1,15 +1,9 @@
 from django.utils import timezone
 from django.db import models
 from django.conf import settings
+from .choices import Status, PaymentType
+from .constants import REMINDER_DAYS_BEFORE
 import secrets as secrets_module
-
-
-REMINDER_DAYS_BEFORE = 7
-RECOVERY_CODE_VALID_MINUTES = 5
-RECOVERY_RATE_LIMIT_WINDOW_MINUTES = 3
-RECOVERY_RATE_LIMIT_MAX_ATTEMPTS = 3
-RECOVERY_LOCKOUT_HOURS = 0.01
-
 
 class Status(models.TextChoices):
     PENDING = "pending", "Pending"
@@ -17,9 +11,9 @@ class Status(models.TextChoices):
     COMPLETED = "completed", "Completed"
     
 class PaymentType(models.TextChoices):
-    PAYMENT_TYPE_FULL = "visa_suma", "Visa suma"
-    PAYMENT_TYPE_DEPOSIT = "avansas", "Avansas"
-    PAYMENT_TYPE_AFTER_DELIVERY = "po_pristatymo", "Po pristatymo"
+    FULL = "full", "Visa suma"
+    DEPOSIT = "deposit", "Avansas"
+    AFTER_DELIVERY = "after_delivery", "Po pristatymo"
     
 class Client(models.Model):
     client_name = models.CharField(max_length=100)
