@@ -8,99 +8,52 @@ services:
     restart: "no"
 
   migrate:
-    build: .
-    command: python manage.py migrate --noinput
     volumes:
       - runtime_secrets:/app/secrets:ro
-    environment:
-      - GOOGLE_SHEETS_CREDENTIALS_PATH=/app/secrets/google_sheets_key.json
-      - GOOGLE_SHEET_ID_PATH=/app/secrets/google_sheet_id.json
+    env_file:
+      - .env-docker/.env.prod
     depends_on:
       bws_init:
         condition: service_completed_successfully
-      db:
-        condition: service_healthy 
 
   web:
-    build: .
-    command: >
-      sh -c "python manage.py collectstatic --noinput &&
-             gunicorn core.wsgi:application --bind 0.0.0.0:8000"
     volumes:
       - static_volume:/app/staticfiles
       - runtime_secrets:/app/secrets:ro
-    environment:
-      - PYTHONUNBUFFERED=1
-      - GOOGLE_SHEETS_CREDENTIALS_PATH=/app/secrets/google_sheets_key.json
-      - GOOGLE_SHEET_ID_PATH=/app/secrets/google_sheet_id.json
-      - DEBUG=False
-      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.162
+    env_file:
+      - .env-docker/.env.prod
     depends_on:
       bws_init:
         condition: service_completed_successfully
-      migrate:
-        condition: service_completed_successfully
-    restart: unless-stopped
-
 
   db:
-    image: postgres:18
     volumes:
       - postgres_data:/var/lib/postgresql
       - runtime_secrets:/run/secrets:ro
-    environment:
-      - POSTGRES_USER_FILE=/run/secrets/postgres_user.txt
-      - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password.txt
-      - POSTGRES_DB_FILE=/run/secrets/postgres_db.txt
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $(cat /run/secrets/postgres_user.txt) -d $(cat /run/secrets/postgres_db.txt)"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
+    env_file:
+      - .env-docker/.env.db
+    restart: unless-stopped
     depends_on:
       bws_init:
         condition: service_completed_successfully
-    restart: unless-stopped
 
   celery_worker:
-    build: .
-    command: celery -A core worker --loglevel=info --concurrency=1
     volumes:
       - runtime_secrets:/app/secrets:ro
-    environment:
-      - GOOGLE_SHEETS_CREDENTIALS_PATH=/app/secrets/google_sheets_key.json
-      - GOOGLE_SHEET_ID_PATH=/app/secrets/google_sheet_id.json
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
+    env_file:
+      - .env-docker/.env.prod
     restart: unless-stopped
 
   celery_beat:
-    build: .
-    command: celery -A core beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     volumes:
       - runtime_secrets:/app/secrets:ro
-    environment:
-      - GOOGLE_SHEETS_CREDENTIALS_PATH=/app/secrets/google_sheets_key.json
-      - GOOGLE_SHEET_ID_PATH=/app/secrets/google_sheet_id.json
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-    restart: unless-stopped
-      
-  nginx:
-    image: nginx:latest
-    ports:
-      - "80:80"
-    volumes:
-      - static_volume:/static
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
-      - runtime_secrets:/etc/nginx/secrets:ro
-    depends_on:
-      - web
+    env_file:
+      - .env-docker/.env.prod
     restart: unless-stopped
 
-volumes:
-  postgres_data:
-  static_volume:
-  runtime_secrets:
+  nginx:
+    volumes:
+      - static_volume:/static
+      - ./nginx.prod.conf:/etc/nginx/conf.d/default.conf
+      - runtime_secrets:/etc/nginx/secrets:ro
+    restart: unless-stopped
