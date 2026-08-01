@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-check:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout (clean copy — only what's actually committed)
+        uses: actions/checkout@v4
+
+      - name: Create dummy secrets for CI (never touches real Bitwarden secrets)
+        run: |
+          mkdir -p secrets
+          echo "ci-fake-secret-key-not-for-production" > secrets/django_secret_key.txt
+          echo "ci_user" > secrets/postgres_user.txt
+          echo "ci_password" > secrets/postgres_password.txt
+          echo "ci_db" > secrets/postgres_db.txt
+          echo "{}" > secrets/google_sheets_key.json
+          echo "{\"sheet_id\": \"ci-fake\"}" > secrets/google_sheet_id.json
+
+      - name: Create dummy env files for CI (never touches real .env.dev/.env.db)
+        run: |
+          mkdir -p .env-docker
+          @"
+          PYTHONUNBUFFERED=1
+          DEBUG=True
+          DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+          "@ | Out-File -FilePath .env-docker/.env.dev -Encoding utf8
+
+          @"
+          POSTGRES_USER_FILE=/run/secrets/postgres_user.txt
+          POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password.txt
+          POSTGRES_DB_FILE=/run/secrets/postgres_db.txt
+          "@ | Out-File -FilePath .env-docker/.env.db -Encoding utf8
+
+      - name: Build all service images from a clean checkout
+        run: docker compose -f docker-compose.yml -f docker-compose.dev.yml build
+
+      - name: Verify Django can load all apps (catches missing/untracked files)
+        run: docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm web python manage.py check
+
+      - name: Verify migrations are consistent with models
+        run: docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm web python manage.py makemigrations --check --dry-run
+
+      - name: Clean up any containers left behind
+        if: always()
+        run: docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
