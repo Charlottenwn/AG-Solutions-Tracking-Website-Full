@@ -1,0 +1,41 @@
+services:
+
+  migrate:
+    volumes:
+      - .:/app
+      - ./secrets:/app/secrets:ro
+    env_file:
+      - .env-docker/.env.dev
+
+  web:
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - ./secrets:/app/secrets:ro
+    env_file:
+      - .env-docker/.env.dev
+    ports:
+      - "8000:8000"
+
+  db:
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./secrets:/run/secrets:ro
+    env_file:
+      - .env-docker/.env.db
+    ports:
+      - "5432:5432"
+
+  celery_worker:
+    volumes:
+      - .:/app
+      - ./secrets:/app/secrets:ro
+    env_file:
+     - .env-docker/.env.dev
+
+  celery_beat:
+    volumes:
+      - .:/app
+      - ./secrets:/app/secrets:ro
+    env_file:
+     - .env-docker/.env.dev
