@@ -37,7 +37,7 @@ from main.models import (
     Client, Order, ClientOrder, FactoryOrder,
     DepositType, DepositClient, DepositFactory, Transport,
 )
-from constants import (DEPOSIT_TYPE_DEPOSIT, DEPOSIT_TYPE_FINAL, DEPOSIT_TYPE_FULL)
+from main.constants import (DEPOSIT_TYPE_DEPOSIT, DEPOSIT_TYPE_FINAL, DEPOSIT_TYPE_FULL)
 
 SHEET_TAB_NAME = "Sheet1"
 HEADER_ROW = 6
