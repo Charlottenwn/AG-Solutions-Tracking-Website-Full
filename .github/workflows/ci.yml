@@ -25,19 +25,15 @@ jobs:
           echo "{\"sheet_id\": \"ci-fake\"}" > secrets/google_sheet_id.json
 
       - name: Create dummy env files for CI (never touches real .env.dev/.env.db)
+        - name: Create dummy env files for CI (never touches real .env.dev/.env.db)
         run: |
-          mkdir -p .env-docker
-          @"
-          PYTHONUNBUFFERED=1
+          "PYTHONUNBUFFERED=1
           DEBUG=True
-          DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
-          "@ | Out-File -FilePath .env-docker/.env.dev -Encoding utf8
+          DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1" | Out-File -FilePath .env-docker/.env.dev -Encoding utf8
 
-          @"
-          POSTGRES_USER_FILE=/run/secrets/postgres_user.txt
+          "POSTGRES_USER_FILE=/run/secrets/postgres_user.txt
           POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password.txt
-          POSTGRES_DB_FILE=/run/secrets/postgres_db.txt
-          "@ | Out-File -FilePath .env-docker/.env.db -Encoding utf8
+          POSTGRES_DB_FILE=/run/secrets/postgres_db.txt" | Out-File -FilePath .env-docker/.env.db -Encoding utf8
 
       - name: Build all service images from a clean checkout
         run: docker compose -f docker-compose.yml -f docker-compose.dev.yml build
