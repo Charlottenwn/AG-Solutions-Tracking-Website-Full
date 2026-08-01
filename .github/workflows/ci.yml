@@ -24,6 +24,12 @@ jobs:
           echo "{}" > secrets/google_sheets_key.json
           echo "{\"sheet_id\": \"ci-fake\"}" > secrets/google_sheet_id.json
 
+      - name: Verify dummy secrets look correct
+        run: |
+          Get-Content secrets/postgres_user.txt
+          Get-Content secrets/postgres_db.txt
+          Get-Content secrets/postgres_password.txt
+
       - name: Create dummy env files for CI (never touches real .env.dev/.env.db)
         run: |
           "PYTHONUNBUFFERED=1
@@ -36,9 +42,13 @@ jobs:
 
       - name: Build all service images from a clean checkout
         run: docker compose -f docker-compose.yml -f docker-compose.dev.yml build
-
+        
       - name: Verify Django can load all apps (catches missing/untracked files)
         run: docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm web python manage.py check
+
+      - name: Show db logs on failure (debugging)
+        if: failure()
+        run: docker compose -f docker-compose.yml -f docker-compose.dev.yml logs db
 
       - name: Verify migrations are consistent with models
         run: docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm web python manage.py makemigrations --check --dry-run
