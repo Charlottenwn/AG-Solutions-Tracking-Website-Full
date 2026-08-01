@@ -17,12 +17,12 @@ jobs:
       - name: Create dummy secrets for CI (never touches real Bitwarden secrets)
         run: |
           mkdir -p secrets
-          echo "ci-fake-secret-key-not-for-production" > secrets/django_secret_key.txt
-          echo "ci_user" > secrets/postgres_user.txt
-          echo "ci_password" > secrets/postgres_password.txt
-          echo "ci_db" > secrets/postgres_db.txt
-          echo "{}" > secrets/google_sheets_key.json
-          echo "{\"sheet_id\": \"ci-fake\"}" > secrets/google_sheet_id.json
+          Set-Content -Path secrets/django_secret_key.txt -Value "ci-fake-secret-key-not-for-production" -Encoding ascii -NoNewline
+          Set-Content -Path secrets/postgres_user.txt -Value "ci_user" -Encoding ascii -NoNewline
+          Set-Content -Path secrets/postgres_password.txt -Value "ci_password" -Encoding ascii -NoNewline
+          Set-Content -Path secrets/postgres_db.txt -Value "ci_db" -Encoding ascii -NoNewline
+          Set-Content -Path secrets/google_sheets_key.json -Value "{}" -Encoding ascii -NoNewline
+          Set-Content -Path secrets/google_sheet_id.json -Value '{"sheet_id": "ci-fake"}' -Encoding ascii -NoNewline
 
       - name: Verify dummy secrets look correct
         run: |
@@ -32,14 +32,9 @@ jobs:
 
       - name: Create dummy env files for CI (never touches real .env.dev/.env.db)
         run: |
-          "PYTHONUNBUFFERED=1
-          DEBUG=True
-          DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1" | Out-File -FilePath .env-docker/.env.dev -Encoding utf8
-
-          "POSTGRES_USER_FILE=/run/secrets/postgres_user.txt
-          POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password.txt
-          POSTGRES_DB_FILE=/run/secrets/postgres_db.txt" | Out-File -FilePath .env-docker/.env.db -Encoding utf8
-
+          Set-Content -Path .env-docker/.env.dev -Value "PYTHONUNBUFFERED=1`nDEBUG=True`nDJANGO_ALLOWED_HOSTS=localhost,127.0.0.1" -Encoding ascii
+          Set-Content -Path .env-docker/.env.db -Value "POSTGRES_USER_FILE=/run/secrets/postgres_user.txt`nPOSTGRES_PASSWORD_FILE=/run/secrets/postgres_password.txt`nPOSTGRES_DB_FILE=/run/secrets/postgres_db.txt" -Encoding ascii
+          
       - name: Build all service images from a clean checkout
         run: docker compose -f docker-compose.yml -f docker-compose.dev.yml build
         
