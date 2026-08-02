@@ -24,17 +24,38 @@ jobs:
       - name: Verify Ruff installation
         run: python -m ruff --version
 
-      - name: Lint with Ruff
-        run: python -m ruff check .
-        continue-on-error: true
+      - name: Lint with Ruff (advisory)
+        shell: pwsh
+        run: |
+          python -m ruff check .
+          $ruffExit = $LASTEXITCODE
 
-      - name: Check formatting
-        run: python -m ruff format --check .
-        continue-on-error: true
+          if ($ruffExit -ne 0) {
+            Write-Host "::warning title=Ruff::Ruff exited with errors. Please check the output above."
+          }
+          else {
+            Write-Host "Ruff lint passed."
+          }
+
+          exit 0
+
+      - name: Check formatting with Ruff (advisory)
+        shell: pwsh
+        run: |
+          python -m ruff format --check .
+          $ruffExit = $LASTEXITCODE
+
+          if ($ruffExit -ne 0) {
+            Write-Host "::warning title=Ruff Formatting::Ruff formatting issues detected. Please check the output above."
+          }
+          else {
+            Write-Host "Ruff formatting passed."
+          }
+
+          exit 0
 
   build-check:
     needs: quality
-    if: always()  # Run even if quality fails - ruff is only an advisory check, not a blocker for CI
     runs-on: self-hosted
 
     steps:
