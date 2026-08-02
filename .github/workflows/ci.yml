@@ -7,13 +7,32 @@ on:
     branches: [main]
 
 jobs:
-  build-check:
+  quality:
     runs-on: self-hosted
 
     steps:
       - name: Checkout (clean copy — only what's actually committed)
         uses: actions/checkout@v4
 
+      - name: Scan repository for secrets
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lint with Ruff
+        run: ruff check .
+
+      - name: Check formatting
+        run: ruff format --check .
+
+  build-check:
+    needs: quality
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout (clean copy — only what's actually committed)
+        uses: actions/checkout@v4
+        
       - name: Create dummy secrets for CI (never touches real Bitwarden secrets)
         run: |
           mkdir -p secrets
