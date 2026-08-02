@@ -25,7 +25,7 @@ jobs:
         run: python -m ruff --version
 
       - name: Lint with Ruff (advisory)
-        shell: pwsh
+        shell: powershell
         run: |
           python -m ruff check .
           $ruffExit = $LASTEXITCODE
@@ -40,7 +40,7 @@ jobs:
           exit 0
 
       - name: Check formatting with Ruff (advisory)
-        shell: pwsh
+        shell: powershell
         run: |
           python -m ruff format --check .
           $ruffExit = $LASTEXITCODE
