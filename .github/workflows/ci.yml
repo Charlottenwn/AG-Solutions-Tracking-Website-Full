@@ -14,11 +14,21 @@ jobs:
       - name: Checkout (clean copy — only what's actually committed)
         uses: actions/checkout@v4
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Ruff
+        run: python -m pip install ruff
+
+      - name: Verify Ruff installation
+        run: python -m ruff --version
+
       - name: Lint with Ruff
-        run: ruff check .
+        run: python -m ruff check .
 
       - name: Check formatting
-        run: ruff format --check .
+        run: python -m ruff format --check .
 
   build-check:
     needs: quality
