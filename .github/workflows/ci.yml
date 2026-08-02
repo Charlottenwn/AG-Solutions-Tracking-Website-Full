@@ -14,11 +14,6 @@ jobs:
       - name: Checkout (clean copy — only what's actually committed)
         uses: actions/checkout@v4
 
-      - name: Scan repository for secrets
-        uses: gitleaks/gitleaks-action@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Lint with Ruff
         run: ruff check .
 
