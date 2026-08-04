@@ -1,5 +1,8 @@
 import secrets
 import hashlib
+from unittest import result
+import requests
+from django.conf import settings
 from datetime import timedelta
 from django.utils import timezone
 from .constants import (
@@ -21,15 +24,34 @@ class NoPhoneNumberOnFile(Exception):
     pass
 
 
-def _send_sms(phone_number, body):
-    """
-    TEMPORARY STAND-IN — no GSM modem/SIM available yet. Prints to the
-    console instead of actually sending anything. Swap this function's
-    body for the real modem call (e.g. python-gammu) once hardware is in
-    hand; nothing else in this file or in views.py needs to change.
-    """
-    print(f"[SMS STUB] To {phone_number}: {body}")
+SEVEN_API_URL = "https://gateway.seven.io/api/sms"
 
+class SmsDeliveryError(Exception):
+    pass
+
+def _send_sms(phone_number, body):
+    response = requests.post(
+        SEVEN_API_URL,
+        headers={
+            "X-Api-Key": settings.SEVEN_API_KEY,
+        },
+        data={
+            "to": phone_number,
+            "text": body,
+            "from": "AG Solutions",
+        },
+        timeout=10,
+    )
+
+    response.raise_for_status()
+
+    result = response.text.strip()
+    
+    print("Seven status:", response.status_code)
+    print("Seven response:", repr(result))
+
+    if result != "100":
+        raise SmsDeliveryError(f"Seven API reported failure: {result}")
 
 def generate_and_send_recovery_code(target_user):
     """
@@ -66,21 +88,26 @@ def generate_and_send_recovery_code(target_user):
 
     lockout.save()
 
+    RecoveryCode.objects.filter(
+        user=target_user,
+        used_at__isnull=True,
+        invalidated_at__isnull=True
+    ).update(invalidated_at=now)
+    
     raw_code = f"{secrets.randbelow(10**8):08d}"
     code_hash = hashlib.sha256(raw_code.encode()).hexdigest()
-
+    
     RecoveryCode.objects.create(
         user=target_user,
         code_hash=code_hash,
         expires_at=now + timedelta(minutes=RECOVERY_CODE_VALID_MINUTES),
     )
-
+           
     _send_sms(
         profile.phone_number,
         f"AG Solutions password recovery code: {raw_code} (valid for {RECOVERY_CODE_VALID_MINUTES} minutes).",
     )
-
-
+    
 def verify_recovery_code(user, raw_code):
     code_hash = hashlib.sha256(raw_code.strip().encode()).hexdigest()
     candidate = (
