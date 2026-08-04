@@ -190,9 +190,10 @@ class RecoveryCode(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     used_at = models.DateTimeField(null=True, blank=True)
+    invalidated_at = models.DateTimeField(null=True, blank=True)
 
     def is_valid(self):
-        return self.used_at is None and timezone.now() < self.expires_at
+        return self.used_at is None and self.invalidated_at is None and timezone.now() < self.expires_at
 
     def __str__(self):
         return f"Recovery code for {self.user.username} (expires {self.expires_at})"
