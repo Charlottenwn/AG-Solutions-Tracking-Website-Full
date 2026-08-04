@@ -7,15 +7,13 @@ services:
     env_file:
       - .env-docker/.env.dev
 
-  web:
+  web: 
     volumes:
       - .:/app
       - static_volume:/app/staticfiles
       - ./secrets:/app/secrets:ro
     env_file:
       - .env-docker/.env.dev
-    ports:
-      - "8000:8000"
 
   db:
     volumes:
@@ -31,11 +29,17 @@ services:
       - .:/app
       - ./secrets:/app/secrets:ro
     env_file:
-     - .env-docker/.env.dev
+      - .env-docker/.env.dev
 
   celery_beat:
     volumes:
       - .:/app
       - ./secrets:/app/secrets:ro
     env_file:
-     - .env-docker/.env.dev
+      - .env-docker/.env.dev
+
+  nginx:
+    volumes:
+      - static_volume:/app/staticfiles
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./secrets/.htpasswd:/etc/nginx/secrets/.htpasswd:ro
