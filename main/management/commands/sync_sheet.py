@@ -26,6 +26,7 @@ exactly (gspread's get_all_records() keys results by header row text). If your
 real headers differ even slightly (typos, extra spaces, parentheses), update
 SHEET_COLUMNS to match — don't silently rename your sheet to fit the code.
 """
+import re
 import os
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
@@ -91,6 +92,14 @@ def parse_date(value):
     value = str(value).strip()
     if value in ("-", "—"):
         return None
+    # Date range format: "19-21/08/2026" — day range within one month/year
+    range_match = re.match(r"^(\d{1,2})-(\d{1,2})/(\d{1,2})/(\d{4})$", value)
+    if range_match:
+        start_day, end_day, month, year = range_match.groups()
+        try:
+            return datetime.strptime(f"{year}-{month}-{start_day}", "%Y-%m-%d").date()
+        except ValueError:
+            return None
     for fmt in ("%Y.%m.%d", "%Y-%m-%d", "%d/%m/%Y", "%d.%m.%Y", "%m/%d/%Y"):
         try:
             return datetime.strptime(value, fmt).date()
