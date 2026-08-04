@@ -1,4 +1,5 @@
 from cProfile import label
+import logging
 from django.http import JsonResponse
 from django.shortcuts import redirect, get_object_or_404
 from django.views.decorators.http import require_POST
@@ -19,11 +20,12 @@ from django.contrib.auth.decorators import login_required
 from django.core import signing
 from django.contrib.auth.models import User
 from .services import (
-    generate_and_send_recovery_code, verify_recovery_code,
+    SmsDeliveryError, generate_and_send_recovery_code, verify_recovery_code,
     RecoveryCodeLocked, NoPhoneNumberOnFile,
 )
 import functools
 from .models import ApiToken, FactoryOrder
+from django_celery_results.models import TaskResult
 
 def recover_password_request(request):
     error = None
@@ -43,7 +45,9 @@ def recover_password_request(request):
             error = "No phone number on file for this account. Contact an admin."
         except RecoveryCodeLocked as exc:
             error = f"Too many attempts. Try again after {timezone.localtime(exc.locked_until).strftime('%H:%M')}."
-
+        except SmsDeliveryError:
+            error = "Unable to send recovery code right now. Please try again later."
+            
     return render(request, "main/recover_password_request_page.html", {"error": error})
 
 
@@ -99,6 +103,39 @@ def set_new_password(request):
 
     return render(request, "main/set_new_password_page.html", {"error": error, "user": user, "link_expiration_minutes": RESET_TOKEN_MAX_AGE_SECONDS // 60, "username": user.username, "recovery_code_valid_minutes": RECOVERY_CODE_VALID_MINUTES})
 
+logger = logging.getLogger(__name__)
+
+def recover_password_request(request):
+    error = None
+
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+
+        try:
+            user = User.objects.get(username=username)
+            generate_and_send_recovery_code(user)
+            request.session["recovery_username"] = username
+            return redirect("recover_password_verify_page")
+
+        except User.DoesNotExist:
+            request.session["recovery_username"] = username
+            return redirect("recover_password_verify_page")
+
+        except NoPhoneNumberOnFile:
+            error = "No phone number on file for this account. Contact an admin."
+
+        except RecoveryCodeLocked as exc:
+            error = (
+                f"Too many attempts. Try again after "
+                f"{timezone.localtime(exc.locked_until).strftime('%H:%M')}."
+            )
+
+    return render(
+        request,
+        "main/recover_password_request_page.html",
+        {"error": error},
+    )
+        
 def _compute_deposit_status(deposits, today):
     deposits = list(deposits)
     if not deposits:
@@ -441,6 +478,9 @@ def main_offer_page(request):
             or (card["package_clarification_status"] and card["package_clarification_status"]["due"]) and not card["package_clarification_status"]["reminder_sent"]
         )
     )
+    
+    
+    
     stats = {
         "total_orders": total_orders,
         "payments_past_due": payments_past_due,
@@ -448,11 +488,15 @@ def main_offer_page(request):
         "furniture_package_reminders_due": furniture_package_reminders_due,
     }
     
+    latest_sync = _get_latest_sync_result()
+    latest_sync_iso = latest_sync.date_done.isoformat() if latest_sync else ""
+    
     return render(request, 'main/main_offer_page.html', {
         "order_cards": order_cards,
         "stats": stats,
         "show_completed": show_completed,
         "completed_orders_count": completed_orders_count,
+        "latest_sync_iso": latest_sync_iso,
         })
     
 def api_token_required(view_func):
@@ -551,3 +595,18 @@ def reminders_due_api(request):
             })
 
     return JsonResponse({"due": due})
+
+def _get_latest_sync_result():
+    return (
+        TaskResult.objects
+        .filter(task_name="main.tasks.sync_sheet_task", status="SUCCESS")
+        .order_by("-date_done")
+        .first()
+    )
+
+@login_required
+def latest_sync_time(request):
+    latest = _get_latest_sync_result()
+    return JsonResponse({
+        "last_sync": latest.date_done.isoformat() if latest else None
+    })
