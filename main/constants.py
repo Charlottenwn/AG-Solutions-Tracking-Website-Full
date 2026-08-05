@@ -1,3 +1,5 @@
+import re
+
 # /main/models.py
 REMINDER_DAYS_BEFORE = 7
 RECOVERY_CODE_VALID_MINUTES = 5
@@ -11,6 +13,7 @@ RECOVERY_LOCKOUT_HOURS = 0.01
 DEPOSIT_TYPE_PRIORITY = {"Deposit": 0, "Final Payment": 1, "Full Payment": 0}
 RESET_TOKEN_SALT = "password-recovery"
 RESET_TOKEN_MAX_AGE_SECONDS = 600 # 5 minutes
+CONTRACT_NUMBER_PATTERN = re.compile(r"^(\d{2})[A-Z]{2} (\d{2})-(\d{2})/")
 
 # /main/management/commands/sync_sheet.py
 SHEET_TAB_NAME = "Sheet1"
