@@ -11,6 +11,28 @@ function initFilters() {
         const term = searchInput.value.trim().toLowerCase();
         const filterValue = filterSelect.value;
 
+        // Handle sort-only options separately from show/hide filters
+        if (filterValue === 'date-newest' || filterValue === 'date-oldest') {
+            const sorted = [...cards].sort((a, b) => {
+                const dateA = a.dataset.contractDate || '';
+                const dateB = b.dataset.contractDate || '';
+                if (!dateA && !dateB) return 0;
+                if (!dateA) return 1;  // cards with no parseable date sink to the end
+                if (!dateB) return -1;
+                return filterValue === 'date-newest'
+                    ? dateB.localeCompare(dateA)
+                    : dateA.localeCompare(dateB);
+            });
+            sorted.forEach(card => orderList.appendChild(card));
+
+            // Still apply search term on top of the new sort order
+            cards.forEach(card => {
+                const searchText = (card.dataset.search || '').toLowerCase();
+                card.style.display = (term === '' || searchText.includes(term)) ? '' : 'none';
+            });
+            return;
+        }
+
         cards.forEach(card => {
             const searchText = (card.dataset.search || '').toLowerCase();
             const statuses = (card.dataset.statuses || '').split(' ');
