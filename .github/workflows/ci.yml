@@ -58,6 +58,10 @@ jobs:
     needs: quality
     runs-on: self-hosted
 
+    env:
+      COMPOSE_PROJECT_NAME: "ci-build-${{ github.run_id }}-${{ github.run_attempt }}"
+      CI_DB_PORT: "5433"
+
     steps:
       - name: Checkout (clean copy — only what's actually committed)
         uses: actions/checkout@v4
