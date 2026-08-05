@@ -84,9 +84,10 @@ jobs:
         run: |
           Set-Content -Path .env-docker/.env.dev -Value "PYTHONUNBUFFERED=1`nDEBUG=True`nDJANGO_ALLOWED_HOSTS=localhost,127.0.0.1" -Encoding ascii
           Set-Content -Path .env-docker/.env.db -Value "POSTGRES_USER_FILE=/run/secrets/postgres_user.txt`nPOSTGRES_PASSWORD_FILE=/run/secrets/postgres_password.txt`nPOSTGRES_DB_FILE=/run/secrets/postgres_db.txt" -Encoding ascii
+          Set-Content -Path .env-docker/.env.ci -Value "DB_PORT=5433" -Encoding ascii
 
       - name: Build all service images from a clean checkout
-        run: docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml build
+        run: docker compose --env-file .env-docker/.env.ci -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml build
         
       - name: Verify Django can load all apps (catches missing/untracked files)
         run: docker compose --env-file .env-docker/.env.ci -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml run --rm web python manage.py check
