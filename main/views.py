@@ -435,6 +435,7 @@ def main_offer_page(request):
             "search_text": search_text,
             "status_tokens": status_tokens,
             "contract_date_iso": contract_date.isoformat() if contract_date else "",
+            "production_end_date_iso": (factory_order.production_end_date.isoformat() if factory_order and factory_order.production_end_date else ""),
         })
 
     # --- Stat cards ---
