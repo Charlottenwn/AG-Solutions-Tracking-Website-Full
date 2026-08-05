@@ -1,5 +1,4 @@
 services:
   db:
     image: postgres:18
-    ports:
-      - "${CI_DB_PORT:-5432}:5432"
+    ports: []
