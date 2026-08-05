@@ -1,15 +1,17 @@
 from cProfile import label
+from datetime import date
 import logging
-from django.http import JsonResponse
+from django.http import JsonResponse, request
 from django.shortcuts import redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from .constants import (
     RECOVERY_CODE_VALID_MINUTES,
     DEPOSIT_TYPE_PRIORITY,
     RESET_TOKEN_SALT,
-    RESET_TOKEN_MAX_AGE_SECONDS
+    RESET_TOKEN_MAX_AGE_SECONDS,
+    CONTRACT_NUMBER_PATTERN
     )
-from .models import FactoryOrder
+from .models import FactoryOrder, Order
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
@@ -418,7 +420,8 @@ def main_offer_page(request):
             package_token,
         ]))
 
-
+        contract_date = _extract_contract_date(order.contract_number)
+        
         order_cards.append({
             "order": order,
             "client_order": client_order,
@@ -431,6 +434,7 @@ def main_offer_page(request):
             "transport_status": transport_status,
             "search_text": search_text,
             "status_tokens": status_tokens,
+            "contract_date_iso": contract_date.isoformat() if contract_date else "",
         })
 
     # --- Stat cards ---
@@ -499,9 +503,21 @@ def main_offer_page(request):
         "latest_sync_iso": latest_sync_iso,
         })
     
+def _extract_contract_date(contract_number):
+    match = CONTRACT_NUMBER_PATTERN.match(contract_number)
+    if not match:
+        return None
+    year_prefix, month, day = match.groups()
+    try:
+        return date(2000 + int(year_prefix), int(month), int(day))
+    except ValueError:
+        return None
+
 def api_token_required(view_func):
     @functools.wraps(view_func)
     def wrapper(request, *args, **kwargs):
+        print("Authorization header:", repr(request.headers.get("Authorization")))
+        print("META HTTP_AUTHORIZATION:", repr(request.META.get("HTTP_AUTHORIZATION")))
         auth_header = request.headers.get("Authorization", "")
         if not auth_header.startswith("Bearer "):
             return JsonResponse({"error": "Missing or malformed Authorization header"}, status=401)
