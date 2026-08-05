@@ -89,19 +89,19 @@ jobs:
         run: docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml build
         
       - name: Verify Django can load all apps (catches missing/untracked files)
-        run: docker compose --env-file .env-docker/.env.ci -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml run --rm web python manage.py check
+        run: docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml run --rm web python manage.py check
 
       - name: Show db logs on failure (debugging)
         if: failure()
-        run: docker compose --env-file .env-docker/.env.ci -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml logs db
+        run: docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml logs db
 
       - name: Verify migrations are consistent with models
-        run: docker compose --env-file .env-docker/.env.ci -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml run --rm web python manage.py makemigrations --check --dry-run
+        run: docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml run --rm web python manage.py makemigrations --check --dry-run
 
       - name: Show migration logs on failure (debugging)
         if: failure()
-        run: docker compose --env-file .env-docker/.env.ci -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml logs migrate
+        run: docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml logs migrate
 
       - name: Clean up any containers left behind
         if: always()
-        run: docker compose --env-file .env-docker/.env.ci -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml down -v
+        run: docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml down -v
