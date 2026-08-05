@@ -5,27 +5,47 @@ function initFilters() {
 
     if (!searchInput || !filterSelect || !orderList) return;
 
-    const cards = Array.from(orderList.querySelectorAll('.order-card'));
+    let originalCards = Array.from(orderList.querySelectorAll('.order-card'));
+    let cards = [...originalCards];
 
     function applyFilters() {
         const term = searchInput.value.trim().toLowerCase();
         const filterValue = filterSelect.value;
 
         // Handle sort-only options separately from show/hide filters
-        if (filterValue === 'date-newest' || filterValue === 'date-oldest') {
-            const sorted = [...cards].sort((a, b) => {
-                const dateA = a.dataset.contractDate || '';
-                const dateB = b.dataset.contractDate || '';
-                if (!dateA && !dateB) return 0;
-                if (!dateA) return 1;  // cards with no parseable date sink to the end
-                if (!dateB) return -1;
-                return filterValue === 'date-newest'
-                    ? dateB.localeCompare(dateA)
-                    : dateA.localeCompare(dateB);
+        if (filterValue === 'date-newest' || filterValue === 'date-oldest' ||
+            filterValue === 'production-end-newest' || filterValue === 'production-end-oldest') {
+            const sorted = [...originalCards].sort((a, b) => {
+                let valueA;
+                let valueB;
+
+                if (
+                    filterValue === "production-end-newest" ||
+                    filterValue === "production-end-oldest"
+                ) {
+                    valueA = a.dataset.productionEndDate;
+                    valueB = b.dataset.productionEndDate;
+                } else {
+                    valueA = a.dataset.contractDate;
+                    valueB = b.dataset.contractDate;
+                }
+
+                const timeA = valueA ? new Date(valueA).getTime() : -Infinity;
+                const timeB = valueB ? new Date(valueB).getTime() : -Infinity;
+
+                if (
+                    filterValue === "date-newest" ||
+                    filterValue === "production-end-newest"
+                ) {
+                    return timeB - timeA;
+                }
+
+                return timeA - timeB;
             });
             sorted.forEach(card => orderList.appendChild(card));
 
-            // Still apply search term on top of the new sort order
+            cards = sorted;
+
             cards.forEach(card => {
                 const searchText = (card.dataset.search || '').toLowerCase();
                 card.style.display = (term === '' || searchText.includes(term)) ? '' : 'none';
