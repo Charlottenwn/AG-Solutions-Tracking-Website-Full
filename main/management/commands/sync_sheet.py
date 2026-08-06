@@ -49,6 +49,7 @@ SHEET_COLUMNS = {
     "factory_order_amount": "GAMYKLOS SUMA",
     "factory_deposit_amount": "GAMYKLOS AVANSO SUMA",
     "factory_final_amount": "GAMYKLAI GALUTINIS MOKĖJIMAS",
+    "factory_packaging_cost": "PAKUOTĖS KAINA",
     "client": "KLIENTAS",
     "client_representative": "KLIENTO ATSTOVAS",
     "production_start_date": "GAMYBOS PRADŽIA",
@@ -369,6 +370,8 @@ class Command(BaseCommand):
             
         elif payment_type == "Avansas":
             
+            depsosit_covers_full_total = (total > 0 and deposit >= total)
+            
             DepositClient.objects.update_or_create(
                 client_order=client_order,
                 deposit_type=deposit_type_deposit,
@@ -385,7 +388,7 @@ class Command(BaseCommand):
                 defaults={
                     "amount": final,
                     "payment_due_by": parse_date(row.get(c["client_final_due_date"])),
-                    "is_paid": final > 0,
+                    "is_paid": final > 0 or depsosit_covers_full_total,
                 },
             )
             
@@ -414,6 +417,9 @@ class Command(BaseCommand):
         factory_order_amount = parse_decimal(row.get(c["factory_order_amount"]))
         factory_deposit_amount = parse_decimal(row.get(c["factory_deposit_amount"]))
         factory_final_amount = parse_decimal(row.get(c["factory_final_amount"]))
+        
+        raw_packaging_cost = row.get(c["factory_packaging_cost"])
+        factory_packaging_cost = parse_decimal(raw_packaging_cost)
 
         factory_order, _ = FactoryOrder.objects.update_or_create(
             order=order,
@@ -424,8 +430,16 @@ class Command(BaseCommand):
                 "production_end_date": parse_date(row.get(c["production_end_date"])),
             },
         )
-
-        factory_paid_amount = (factory_deposit_amount or Decimal("0")) + (factory_final_amount or Decimal("0"))
+        
+        if _cell_is_blank(raw_packaging_cost):
+            factory_paid_amount = (factory_deposit_amount or Decimal("0")) + (factory_final_amount or Decimal("0"))
+        else:
+            factory_paid_amount = (
+                (factory_deposit_amount or Decimal("0"))
+                + (factory_final_amount or Decimal("0"))
+                + (factory_packaging_cost or Decimal("0"))
+            )  
+            
         factory_fully_paid = is_paid(factory_paid_amount, factory_order_amount)
         
         DepositFactory.objects.update_or_create(
