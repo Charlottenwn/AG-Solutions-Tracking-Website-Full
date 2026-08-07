@@ -46,7 +46,14 @@ services:
     depends_on:
       - web
 
+  ntfy:
+    image: binwiederhier/ntfy:latest
+    command: serve
+    ports:
+      - "8080:80"
+
 volumes:
   postgres_data:
   static_volume:
   runtime_secrets:
+  ntfy_data:

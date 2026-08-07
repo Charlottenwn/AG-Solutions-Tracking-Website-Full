@@ -59,3 +59,10 @@ services:
       - ./nginx.prod.conf:/etc/nginx/conf.d/default.conf
       - runtime_secrets:/etc/nginx/secrets:ro
     restart: unless-stopped
+
+  ntfy:
+    volumes:
+      - ntfy_data:/var/lib/ntfy
+      - ./ntfy/server.yml:/etc/ntfy/server.yml:ro
+      - runtime_secrets:/run/secrets:ro
+    restart: unless-stopped
