@@ -42,6 +42,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = read_secret("/app/secrets/django_secret_key.txt")
 SEVEN_API_KEY = read_secret("/app/secrets/seven_api_key.txt")
+NTFY_BASE_URL = os.environ.get("NTFY_BASE_URL", "http://ntfy:80")
+NTFY_USER = read_secret("/app/secrets/ntfy_user.txt")
+NTFY_PASSWORD = read_secret("/app/secrets/ntfy_password.txt")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "0") == "1"
