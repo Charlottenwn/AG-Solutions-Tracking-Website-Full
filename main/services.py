@@ -1,6 +1,7 @@
 import secrets
 import hashlib
 from unittest import result
+import uuid
 import requests
 from django.conf import settings
 from datetime import timedelta
@@ -11,7 +12,7 @@ from .constants import (
     RECOVERY_RATE_LIMIT_MAX_ATTEMPTS,
     RECOVERY_LOCKOUT_HOURS,
 )
-from .models import (RecoveryCode, RecoveryLockout)
+from .models import (RecoveryAttempt, RecoveryCode, RecoveryLockout)
 
 
 class RecoveryCodeLocked(Exception):
@@ -53,25 +54,26 @@ def _send_sms(phone_number, body):
     if result != "100":
         raise SmsDeliveryError(f"Seven API reported failure: {result}")
 
-def generate_and_send_recovery_code(target_user):
-    """
-    Generates a fresh recovery code for target_user and 'sends' it (see
-    _send_sms stub above). Enforces the rate limit before doing anything
-    else — no code is created if the user is currently locked out or
-    over the attempt limit.
+def generate_and_send_recovery_code(target_user, ip_address=None, recovery_session=None):
+    if recovery_session is None:
+        raise ValueError("recovery_session must be provided for recovery code generation")
 
-    Raises NoPhoneNumberOnFile or RecoveryCodeLocked. Returns nothing —
-    the raw code only ever exists inside _send_sms's argument.
-    """
     now = timezone.now()
 
     profile = getattr(target_user, "profile", None)
     if not profile or not profile.phone_number:
+        RecoveryAttempt.objects.create(
+            user=target_user, status="failed_no_phone", ip_address=ip_address, session=recovery_session
+        )
         raise NoPhoneNumberOnFile()
 
     lockout, _ = RecoveryLockout.objects.get_or_create(user=target_user)
 
     if lockout.locked_until and now < lockout.locked_until:
+        RecoveryAttempt.objects.create(
+            user=target_user, status="failed_lockout", ip_address=ip_address, session=recovery_session,
+            detail=f"Locked until {lockout.locked_until}",
+        )
         raise RecoveryCodeLocked(lockout.locked_until)
 
     window = timedelta(minutes=RECOVERY_RATE_LIMIT_WINDOW_MINUTES)
@@ -84,31 +86,48 @@ def generate_and_send_recovery_code(target_user):
     if lockout.attempt_count > RECOVERY_RATE_LIMIT_MAX_ATTEMPTS:
         lockout.locked_until = now + timedelta(hours=RECOVERY_LOCKOUT_HOURS)
         lockout.save()
+        RecoveryAttempt.objects.create(
+            user=target_user, status="failed_lockout", ip_address=ip_address, session=recovery_session,
+            detail="Rate limit exceeded — lockout just triggered",
+        )
         raise RecoveryCodeLocked(lockout.locked_until)
 
     lockout.save()
 
     RecoveryCode.objects.filter(
-        user=target_user,
-        used_at__isnull=True,
-        invalidated_at__isnull=True
+        user=target_user, used_at__isnull=True, invalidated_at__isnull=True
     ).update(invalidated_at=now)
-    
+
     raw_code = f"{secrets.randbelow(10**8):08d}"
     code_hash = hashlib.sha256(raw_code.encode()).hexdigest()
-    
+
     RecoveryCode.objects.create(
         user=target_user,
         code_hash=code_hash,
         expires_at=now + timedelta(minutes=RECOVERY_CODE_VALID_MINUTES),
     )
-           
-    _send_sms(
-        profile.phone_number,
-        f"AG Solutions password recovery code: {raw_code} (valid for {RECOVERY_CODE_VALID_MINUTES} minutes).",
+
+    try:
+        _send_sms(
+            profile.phone_number,
+            f"AG Solutions password recovery code: {raw_code} (valid for {RECOVERY_CODE_VALID_MINUTES} minutes).",
+        )
+    except Exception as exc:
+        RecoveryAttempt.objects.create(
+            user=target_user, status="failed_sms_error", ip_address=ip_address, session=recovery_session,
+            detail=str(exc),
+        )
+        raise
+
+    RecoveryAttempt.objects.create(
+        user=target_user, status="initiated", ip_address=ip_address, session=recovery_session
     )
-    
-def verify_recovery_code(user, raw_code):
+
+
+def verify_recovery_code(user, raw_code, ip_address=None, recovery_session=None):
+    if recovery_session is None:
+        raise ValueError("recovery_session must be provided for recovery code verification")
+
     code_hash = hashlib.sha256(raw_code.strip().encode()).hexdigest()
     candidate = (
         RecoveryCode.objects
@@ -117,8 +136,15 @@ def verify_recovery_code(user, raw_code):
         .first()
     )
     if not candidate or not candidate.is_valid():
+        RecoveryAttempt.objects.create(
+            user=user, status="failed_invalid_code", ip_address=ip_address, session=recovery_session,
+        )
         return False
 
     candidate.used_at = timezone.now()
     candidate.save()
+
+    RecoveryAttempt.objects.create(
+        user=user, status="code_verified", ip_address=ip_address, session=recovery_session, detail="Code verified successfully",
+    )
     return True

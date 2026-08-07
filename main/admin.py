@@ -1,10 +1,11 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
+from django.urls import reverse
 from django_celery_results.models import TaskResult
 from django.utils.html import format_html
 from .models import (
-    ApiToken, Client, Order, Transport,
+    ApiToken, Client, Order, RecoveryAttempt, RecoverySession, Transport,
     FactoryOrder, ClientOrder,
     DepositType, DepositFactory, DepositClient,
     UserProfile, 
@@ -122,6 +123,35 @@ class CustomTaskResultAdmin(admin.ModelAdmin):
         return format_html('<span title="{}">ⓘ</span>', obj.result)
 
     result_summary.short_description = "Result" 
+
+class RecoveryAttemptInline(admin.TabularInline):
+    model = RecoveryAttempt
+    extra = 0
+    can_delete = False
+    readonly_fields = ("created_at", "status", "ip_address", "detail")
+    
+    def has_add_permission(self, request, obj=None):
+        return False
+    
+@admin.register(RecoverySession)
+class RecoverySessionAdmin(admin.ModelAdmin):
+    list_display = ["id", "user", "started_at", "finished_at", "result"]
+    readonly_fields = ["id", "user", "started_at", "finished_at", "result"]
+    list_filter = ["result", "started_at", "finished_at"]
+    search_fields = ["user__username", "user__email"]
+    
+    inlines = [RecoveryAttemptInline]
+    
+    ordering = ["-started_at"]
+    
+    def has_add_permission(self, request):
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 admin.site.register(Client)
 admin.site.register(Order)

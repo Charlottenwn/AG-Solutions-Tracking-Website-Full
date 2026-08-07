@@ -1,6 +1,7 @@
 from cProfile import label
 from datetime import date
 import logging
+import uuid
 from django.http import JsonResponse, request
 from django.shortcuts import redirect, get_object_or_404
 from django.views.decorators.http import require_POST
@@ -11,7 +12,7 @@ from .constants import (
     RESET_TOKEN_MAX_AGE_SECONDS,
     CONTRACT_NUMBER_PATTERN
     )
-from .models import FactoryOrder, Order
+from .models import FactoryOrder, Order, RecoveryAttempt, RecoverySession
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
@@ -29,30 +30,6 @@ import functools
 from .models import ApiToken, FactoryOrder
 from django_celery_results.models import TaskResult
 
-def recover_password_request(request):
-    error = None
-
-    if request.method == "POST":
-        username = request.POST.get("username", "").strip()
-        try:
-            user = User.objects.get(username=username)
-            generate_and_send_recovery_code(user)
-            request.session["recovery_username"] = username
-            return redirect("recover_password_verify_page")
-        except User.DoesNotExist:
-            # Don't reveal whether the username exists.
-            request.session["recovery_username"] = username
-            return redirect("recover_password_verify_page")
-        except NoPhoneNumberOnFile:
-            error = "No phone number on file for this account. Contact an admin."
-        except RecoveryCodeLocked as exc:
-            error = f"Too many attempts. Try again after {timezone.localtime(exc.locked_until).strftime('%H:%M')}."
-        except SmsDeliveryError:
-            error = "Unable to send recovery code right now. Please try again later."
-            
-    return render(request, "main/recover_password_request_page.html", {"error": error})
-
-
 def recover_password_verify(request):
     username = request.session.get("recovery_username")
     if not username:
@@ -62,9 +39,11 @@ def recover_password_verify(request):
 
     if request.method == "POST":
         code = request.POST.get("code", "").strip()
+        ip = _get_client_ip(request)
+        recovery_session = get_object_or_404(RecoverySession, pk=request.session["recovery_session_id"],)
         try:
             user = User.objects.get(username=username)
-            if verify_recovery_code(user, code):
+            if verify_recovery_code(user, code, ip_address=ip, recovery_session=recovery_session):
                 token = signing.dumps({"user_id": user.id}, salt=RESET_TOKEN_SALT)
                 request.session["password_reset_token"] = token
                 del request.session["recovery_username"]
@@ -93,14 +72,31 @@ def set_new_password(request):
     if request.method == "POST":
         password1 = request.POST.get("password1", "")
         password2 = request.POST.get("password2", "")
-        if len(password1) < 8:
-            error = "Password must be at least 8 characters."
+        if len(password1) < 14:
+            error = "Password must be at least 14 characters."
         elif password1 != password2:
             error = "Passwords don't match."
         else:
             user.set_password(password1)
             user.save()
+
+            recovery_session = get_object_or_404(RecoverySession, pk=request.session["recovery_session_id"],)
+
+            RecoveryAttempt.objects.create(
+                session=recovery_session,
+                user=user,
+                status="password_reset",
+                ip_address=_get_client_ip(request),
+                detail="Password reset successfully",
+            )
+
+            recovery_session.result = "success"
+            recovery_session.finished_at = timezone.now()
+            recovery_session.save(update_fields=["result", "finished_at"])
+
             del request.session["password_reset_token"]
+            request.session.pop("recovery_session_id", None)
+
             return redirect("login_page")
 
     return render(request, "main/set_new_password_page.html", {"error": error, "user": user, "link_expiration_minutes": RESET_TOKEN_MAX_AGE_SECONDS // 60, "username": user.username, "recovery_code_valid_minutes": RECOVERY_CODE_VALID_MINUTES})
@@ -112,10 +108,15 @@ def recover_password_request(request):
 
     if request.method == "POST":
         username = request.POST.get("username", "").strip()
-
+        ip = _get_client_ip(request)
+        
         try:
             user = User.objects.get(username=username)
-            generate_and_send_recovery_code(user)
+            
+            recovery_session = RecoverySession.objects.create(user=user, ip_address=ip,)
+            request.session["recovery_session_id"] = recovery_session.id
+            
+            generate_and_send_recovery_code(user, ip_address=ip, recovery_session=recovery_session)
             request.session["recovery_username"] = username
             return redirect("recover_password_verify_page")
 
@@ -306,6 +307,12 @@ def _compute_package_clarification_status(factory_order, today):
         "days_remaining": days_remaining,
         "reminder_sent": factory_order.is_package_clarification_reminder_sent,
     }
+    
+def _get_client_ip(request):
+    forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR")
     
 def login_page(request):
     error = None

@@ -1,14 +1,30 @@
 from django.utils import timezone
 from django.db import models
 from django.conf import settings
+from gunicorn.config import User
+from gunicorn.config import User
 from .choices import Status, PaymentType
 from .constants import REMINDER_DAYS_BEFORE
 import secrets as secrets_module
 
+class Status_recovery(models.TextChoices):
+    INITIATED = "initiated", "Initiated"
+    CODE_VERIFIED = "code_verified", "Code verified"
+    PASSWORD_RESET = "password_reset", "Password reset completed"
+    FAILED_LOCKOUT = "failed_lockout", "Failed — locked out"
+    FAILED_NO_PHONE = "failed_no_phone", "Failed — no phone on file"
+    FAILED_INVALID_CODE = "failed_invalid_code", "Failed — invalid/expired code"
+    FAILED_SMS_ERROR = "failed_sms_error", "Failed — SMS send error"
+    
 class Status(models.TextChoices):
     PENDING = "pending", "Pending"
     IN_PROGRESS = "in_progress", "In Progress"
     COMPLETED = "completed", "Completed"
+    
+class Status_recovery_session(models.TextChoices):
+    ACTIVE = "active", "Active"
+    SUCCESS = "success", "Success"
+    FAILED = "failed", "Failed"
     
 class PaymentType(models.TextChoices):
     FULL = "full", "Visa suma"
@@ -170,9 +186,7 @@ class DepositClient(models.Model):
         return f"Client deposit for {self.client_order} - {self.deposit_type}"
     
 class UserProfile(models.Model):
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile"
-    )
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
     phone_number = models.CharField(
         max_length=20, blank=True,
         help_text="E.164 format, e.g. +37060012345 — required for password recovery via SMS."
@@ -183,9 +197,7 @@ class UserProfile(models.Model):
 
 
 class RecoveryCode(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recovery_codes"
-    )
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recovery_codes")
     code_hash = models.CharField(max_length=64)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
@@ -200,9 +212,7 @@ class RecoveryCode(models.Model):
 
 
 class RecoveryLockout(models.Model):
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recovery_lockout"
-    )
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recovery_lockout")
     attempt_count = models.PositiveIntegerField(default=0)
     window_started_at = models.DateTimeField(null=True, blank=True)
     locked_until = models.DateTimeField(null=True, blank=True)
@@ -227,3 +237,27 @@ class ApiToken(models.Model):
 
     def __str__(self):
         return f"{self.label} ({'active' if self.is_active else 'revoked'})"
+
+class RecoverySession(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recovery_sessions")
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True, help_text="When the recovery session was completed (successfully or not).")
+    result = models.CharField(max_length=10, choices=Status_recovery_session.choices, default=Status_recovery_session.ACTIVE,)
+    ip_address = models.GenericIPAddressField(null=True, blank=True, help_text="IP address from which the recovery session was initiated.")
+
+    def __str__(self):
+        return (f"{self.user.username} " f"({self.started_at:%Y-%m-%d %H:%M}) " f"- {self.result}")
+        
+class RecoveryAttempt(models.Model):
+    session = models.ForeignKey(RecoverySession, on_delete=models.CASCADE, related_name="events", null=True, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recovery_attempts")
+    status = models.CharField(max_length=30, choices=Status_recovery.choices, default=Status_recovery.INITIATED)
+    created_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    detail = models.TextField(blank=True, help_text="Error message or extra context, if any.")
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user.username} — {self.get_status_display()} @ {self.created_at:%Y-%m-%d %H:%M}"
