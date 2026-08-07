@@ -1,19 +1,20 @@
 import secrets
 import hashlib
-from unittest import result
-import uuid
 import requests
 from django.conf import settings
-from datetime import timedelta
+from datetime import date, timedelta
 from django.utils import timezone
 from .constants import (
+    CONTRACT_NUMBER_PATTERN,
     RECOVERY_CODE_VALID_MINUTES,
     RECOVERY_RATE_LIMIT_WINDOW_MINUTES,
     RECOVERY_RATE_LIMIT_MAX_ATTEMPTS,
     RECOVERY_LOCKOUT_HOURS,
+    DEPOSIT_TYPE_PRIORITY,
+    SEVEN_API_URL
 )
 from .models import (RecoveryAttempt, RecoveryCode, RecoveryLockout)
-
+from django_celery_results.models import TaskResult
 
 class RecoveryCodeLocked(Exception):
     def __init__(self, locked_until):
@@ -23,9 +24,6 @@ class RecoveryCodeLocked(Exception):
 
 class NoPhoneNumberOnFile(Exception):
     pass
-
-
-SEVEN_API_URL = "https://gateway.seven.io/api/sms"
 
 class SmsDeliveryError(Exception):
     pass
@@ -148,3 +146,257 @@ def verify_recovery_code(user, raw_code, ip_address=None, recovery_session=None)
         user=user, status="code_verified", ip_address=ip_address, session=recovery_session, detail="Code verified successfully",
     )
     return True
+
+def compute_deposit_status(deposits, today):
+    deposits = list(deposits)
+    if not deposits:
+        return {
+            "token": "due",
+            "paid": False,
+            "label": "no deposit info",
+            "deposit_type": None,
+            "days_remaining": None,
+            "overdue": False,
+            "reminder_sent": False,
+        }
+
+    unpaid = [d for d in deposits if not d.is_paid]
+    if not unpaid:
+        return {
+            "token": "paid",
+            "paid": True,
+            "label": "Paid ✓",
+            "deposit_type": None,
+            "days_remaining": None,
+            "overdue": False,
+            "reminder_sent": False,
+        }
+
+    # A deposit row only counts as "informative" if it actually carries an
+    # amount or a due date — otherwise it's just an empty placeholder row
+    # created by sync (e.g. factory deposits before any sheet data exists).
+    informative_unpaid = [
+        d for d in unpaid if d.amount is not None or d.payment_due_by is not None
+    ]
+    if not informative_unpaid:
+        return {
+            "token": "due",
+            "paid": False,
+            "label": "no deposit info",
+            "deposit_type": None,
+            "days_remaining": None,
+            "overdue": False,
+            "reminder_sent": False,
+        }
+
+    informative_unpaid.sort(key=lambda d: DEPOSIT_TYPE_PRIORITY.get(d.deposit_type.type_name, 99))
+    active = informative_unpaid[0]
+    dated_unpaid = sorted(
+        (d for d in informative_unpaid if d.payment_due_by),
+        key=lambda d: DEPOSIT_TYPE_PRIORITY.get(d.deposit_type.type_name, 99),
+    )
+    if dated_unpaid:
+        active = dated_unpaid[0]
+
+    days_remaining = None
+    overdue = False
+    if active.payment_due_by:
+        days_remaining = (active.payment_due_by - today).days
+        overdue = days_remaining < 0
+
+    if days_remaining is None:
+        label = f"{active.deposit_type.type_name} due"
+    elif overdue:
+        label = f"{active.deposit_type.type_name} overdue by {abs(days_remaining)} days"
+    else:
+        label = f"{active.deposit_type.type_name} due in {days_remaining} days"
+
+    return {
+        "token": "overdue" if overdue else "due",
+        "paid": False,
+        "label": label,
+        "deposit_type": active.deposit_type.type_name,
+        "days_remaining": days_remaining,
+        "overdue": overdue,
+        "reminder_sent": active.is_reminder_sent,
+    }
+
+
+def compute_transport_status(transport, today):
+    if not transport:
+        return {
+            "token": "pending",
+            "label": "Transport pending",
+            "courier": "",
+            "days_remaining": None,
+            "overdue": False,
+            "reminder_sent": False,
+        }
+
+    courier = (transport.courier or "").strip()
+    confirmed = bool(courier)
+
+    days_remaining = None
+    overdue = False
+    if transport.delivery_date:
+        days_remaining = (transport.delivery_date - today).days
+        overdue = days_remaining < 0 and not confirmed
+
+    if confirmed:
+        token = "confirmed"
+        if transport.delivery_date and days_remaining is not None and days_remaining < 0:
+            label = f"Transport confirmed · overdue by {abs(days_remaining)} days past original date"
+        else:
+            label = "Transport confirmed"
+    elif overdue:
+        token = "overdue"
+        label = f"Transport pending · overdue by {abs(days_remaining)} days"
+    elif days_remaining is not None:
+        token = "pending"
+        label = f"Transport pending · {days_remaining} days remaining"
+    else:
+        token = "pending"
+        label = "Transport pending"
+
+    return {
+        "token": token,
+        "label": label,
+        "courier": courier,
+        "days_remaining": days_remaining,
+        "overdue": overdue,
+        "reminder_sent": transport.is_reminder_sent,
+    }
+
+def compute_furniture_status(factory_order, today):
+    if not factory_order or not factory_order.furniture_reminder_date:
+        return None
+    
+    days_remaining = (factory_order.furniture_reminder_date - today).days
+    overdue = days_remaining <= 0
+    if factory_order.is_furniture_reminder_sent:
+        token = "paid"
+        label = "Furniture reminder sent"
+    elif overdue:
+        token = "overdue"
+        label = f"Furniture reminder overdue by {abs(days_remaining)} days"
+    else:
+        token = "due"
+        label = f"Furniture reminder in {days_remaining} days"
+
+    return {
+        "label": label,
+        "token": token,
+        "due": overdue,
+        "days_remaining": days_remaining,
+        "reminder_sent": factory_order.is_furniture_reminder_sent,
+    }
+
+
+def compute_package_clarification_status(factory_order, today):
+    if not factory_order or not factory_order.package_clarification_reminder_date:
+        return None
+    
+    days_remaining = (factory_order.package_clarification_reminder_date - today).days
+    overdue = days_remaining <= 0
+    if factory_order.is_package_clarification_reminder_sent:
+        token = "paid"
+        label = "Package clarification reminder sent"
+    elif overdue:
+        token = "overdue"
+        label = f"Package clarification overdue by {abs(days_remaining)} days"
+    else:        
+        token = "due"
+        label = f"Package clarification in {days_remaining} days"
+        
+    return {
+        "label": label,
+        "token": token,
+        "due": overdue,
+        "days_remaining": days_remaining,
+        "reminder_sent": factory_order.is_package_clarification_reminder_sent,
+    }
+    
+def get_client_ip(request):
+    forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR")
+
+def is_order_complete(client_status, factory_status, transport_status,
+                        furniture_status, package_clarification_status):
+    return (
+        client_status["paid"]
+        and factory_status["paid"]
+        and transport_status["token"] == "confirmed"
+        and (furniture_status is None or furniture_status["reminder_sent"])
+        and (package_clarification_status is None or package_clarification_status["reminder_sent"])
+    )
+    
+
+def get_latest_sync_result():
+    return (
+        TaskResult.objects
+        .filter(task_name="main.tasks.sync_sheet_task", status="SUCCESS")
+        .order_by("-date_done")
+        .first()
+    )
+    
+def extract_contract_date(contract_number):
+    match = CONTRACT_NUMBER_PATTERN.match(contract_number)
+    if not match:
+        return None
+    year_prefix, month, day = match.groups()
+    try:
+        return date(2000 + int(year_prefix), int(month), int(day))
+    except ValueError:
+        return None
+    
+def get_due_reminders(today):
+    """
+    Shared logic for both reminders_due_api and check_reminders_task —
+    returns a list of {"id": ..., "message": ...} for every currently-due,
+    not-yet-marked-sent reminder across all orders.
+    """
+    from .models import Order  # local import avoids circulars at module load
+
+    due = []
+    orders = Order.objects.select_related("client").prefetch_related(
+        "clientorder_set__depositclient_set__deposit_type",
+        "factoryorder_set__depositfactory_set__deposit_type",
+        "transport",
+    )
+
+    for order in orders:
+        client_order = order.clientorder_set.first()
+        factory_order = order.factoryorder_set.first()
+        transport = getattr(order, "transport", None)
+
+        client_status = compute_deposit_status(
+            client_order.depositclient_set.all() if client_order else [], today
+        )
+        factory_status = compute_deposit_status(
+            factory_order.depositfactory_set.all() if factory_order else [], today
+        )
+        transport_status = compute_transport_status(transport, today)
+        furniture_status = compute_furniture_status(factory_order, today)
+        package_status = compute_package_clarification_status(factory_order, today)
+
+        if (not client_status["paid"] and not client_status["reminder_sent"]
+                and client_status["days_remaining"] is not None and client_status["days_remaining"] <= 7):
+            due.append({"id": f"client-deposit-{order.id}", "message": f"{order.contract_number}: Client {client_status['label']}"})
+
+        if (not factory_status["paid"] and not factory_status["reminder_sent"]
+                and factory_status["days_remaining"] is not None and factory_status["days_remaining"] <= 7):
+            due.append({"id": f"factory-deposit-{order.id}", "message": f"{order.contract_number}: Factory {factory_status['label']}"})
+
+        if (transport_status["token"] != "confirmed" and not transport_status["reminder_sent"]
+                and transport_status["days_remaining"] is not None and transport_status["days_remaining"] <= 7):
+            due.append({"id": f"transport-{order.id}", "message": f"{order.contract_number}: {transport_status['label']}"})
+
+        if furniture_status and furniture_status["due"] and not furniture_status["reminder_sent"]:
+            due.append({"id": f"furniture-{factory_order.id}", "message": f"{order.contract_number}: {furniture_status['label']}"})
+
+        if package_status and package_status["due"] and not package_status["reminder_sent"]:
+            due.append({"id": f"package-{factory_order.id}", "message": f"{order.contract_number}: {package_status['label']}"})
+
+    return due
