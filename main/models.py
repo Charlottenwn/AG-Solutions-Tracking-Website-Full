@@ -261,3 +261,10 @@ class RecoveryAttempt(models.Model):
 
     def __str__(self):
         return f"{self.user.username} — {self.get_status_display()} @ {self.created_at:%Y-%m-%d %H:%M}"
+    
+class NtfySentReminder(models.Model):
+    reminder_id = models.CharField(max_length=100, unique=True)
+    last_sent_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.reminder_id} — last sent {self.last_sent_at:%Y-%m-%d %H:%M}"
