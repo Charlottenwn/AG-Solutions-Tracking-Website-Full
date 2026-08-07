@@ -72,6 +72,8 @@ jobs:
           Set-Content -Path secrets/google_sheets_key.json -Value "{}" -Encoding ascii -NoNewline
           Set-Content -Path secrets/google_sheet_id.json -Value '{"sheet_id": "ci-fake"}' -Encoding ascii -NoNewline
           Set-Content -Path secrets/seven_api_key.txt -Value "ci-fake-api-key" -Encoding ascii -NoNewline
+          Set-Content -Path secrets/ntfy_user.txt -Value "ci-ntfy-user" -Encoding ascii -NoNewline
+          Set-Content -Path secrets/ntfy_password.txt -Value "ci-ntfy-password" -Encoding ascii -NoNewline
 
       - name: Verify dummy secrets look correct
         run: |
@@ -79,6 +81,8 @@ jobs:
           Get-Content secrets/postgres_db.txt
           Get-Content secrets/postgres_password.txt
           Get-Content secrets/seven_api_key.txt
+          Get-Content secrets/ntfy_user.txt
+          Get-Content secrets/ntfy_password.txt
 
       - name: Create dummy env files for CI (never touches real .env.dev/.env.db)
         run: |
