@@ -8,7 +8,7 @@ OUT=/runtime-secrets
 mkdir -p "$OUT"
 
 fetch() {
-    bws secret get "$1" --output json | jq -er '.value' > "$OUT/$2"
+    bws secret get "$1" --server-url "$BWS_SERVER_URL" --output json | jq -er '.value' > "$OUT/$2"
 }
 
 fetch c96ed7e4-0fb3-4dab-886b-b49301554c7b .htpasswd
@@ -19,5 +19,7 @@ fetch dbc0f755-95db-4d52-86a7-b4930155fa03 postgres_db.txt
 fetch ebce5d26-88a5-4843-b378-b49301562c64 postgres_password.txt
 fetch f44e3d07-b608-46b4-8565-b4930156541c postgres_user.txt
 fetch 5e85bdd8-0df0-4dce-b0c9-b49b00a1ec51 seven_api_key.txt
+fetch daac5d3e-52e0-414f-b0a8-b49f00907b85 ntfy_user.txt
+fetch 575c177c-30c4-4af5-81ab-b49f0090f1a9 ntfy_password.txt
 
 echo "All secrets fetched successfully."
