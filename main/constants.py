@@ -22,3 +22,6 @@ HEADER_ROW = 6
 DEPOSIT_TYPE_DEPOSIT = "Deposit"
 DEPOSIT_TYPE_FINAL = "Final Payment"
 DEPOSIT_TYPE_FULL = "Full Payment"
+
+# /main/services.py
+SEVEN_API_URL = "https://gateway.seven.io/api/sms"
