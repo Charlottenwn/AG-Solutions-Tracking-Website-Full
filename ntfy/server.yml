@@ -1,4 +1,7 @@
-base-url: "http://localhost:8080"
+base-url: "https://<URL>.ts.net:8443"
 listen-http: ":80"
+listen-https: ":8443"
+cert-file: "/etc/ntfy/certs/<URL>.ts.net.crt"
+key-file: "/etc/ntfy/certs/<URL>.ts.net.key"
 auth-file: "/var/lib/ntfy/auth.db"
 auth-default-access: "deny-all"

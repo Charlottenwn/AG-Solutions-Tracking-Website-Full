@@ -51,6 +51,7 @@ services:
     command: serve
     ports:
       - "8080:80"
+      - "8443:8443"
 
 volumes:
   postgres_data:
