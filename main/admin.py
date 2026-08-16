@@ -5,11 +5,13 @@ from django.urls import reverse
 from django_celery_results.models import TaskResult
 from django.utils.html import format_html
 from .models import (
-    ApiToken, Client, Order, RecoveryAttempt, RecoverySession, Transport,
+    Client, Order, RecoveryAttempt, RecoverySession, Transport,
     FactoryOrder, ClientOrder,
     DepositType, DepositFactory, DepositClient,
     UserProfile, 
 )
+import json
+
 
 @admin.register(DepositFactory)
 class DepositFactoryAdmin(admin.ModelAdmin):
@@ -106,23 +108,7 @@ class UserProfileInline(admin.StackedInline):
 class CustomUserAdmin(UserAdmin):
     inlines = [UserProfileInline]
     
-@admin.register(ApiToken)
-class ApiTokenAdmin(admin.ModelAdmin):
-    list_display = ["label", "token", "is_active", "last_used_at", "created_at"]
-    readonly_fields = ["token", "last_used_at", "created_at"]
-
 admin.site.unregister(TaskResult) # unregister the auto-registered TaskResultAdmin by django_celery_result
-   
-@admin.register(TaskResult)
-class CustomTaskResultAdmin(admin.ModelAdmin):
-    list_display = ["task_name", "status", "date_done", "result_summary"]
-
-    def result_summary(self, obj):
-        if not obj.result:
-            return "—"
-        return format_html('<span title="{}">ⓘ</span>', obj.result)
-
-    result_summary.short_description = "Result" 
 
 class RecoveryAttemptInline(admin.TabularInline):
     model = RecoveryAttempt
@@ -130,8 +116,46 @@ class RecoveryAttemptInline(admin.TabularInline):
     can_delete = False
     readonly_fields = ("created_at", "status", "ip_address", "detail")
     
-    def has_add_permission(self, request, obj=None):
-        return False
+@admin.register(TaskResult)
+class CustomTaskResultAdmin(admin.ModelAdmin):
+    list_display = ["task_name", "status", "date_done", "result_summary"]
+
+    @admin.display(description="Result")
+    def result_summary(self, obj):
+        if not obj.result:
+            return "—"
+
+        # Decode the result. It may be JSON-encoded more than once.
+        result = obj.result
+
+        for _ in range(2):
+            if not isinstance(result, str):
+                break
+
+            try:
+                result = json.loads(result)
+            except (json.JSONDecodeError, TypeError):
+                break
+
+        warning = ""
+
+        if (
+            obj.task_name == "main.tasks.check_reminders_task"
+            and isinstance(result, dict)
+            and result.get("pushed", 0) > 0
+        ):
+            warning = format_html(
+                ' <span title="{} reminders pushed" '
+                'style="color: #ffc107; font-size: 16px; '
+                'font-weight: bold; cursor: help;">⚠️</span>',
+                result["pushed"],
+            )
+
+        return format_html(
+            '<span title="{}">ⓘ</span>{}',
+            obj.result,
+            warning,
+        )    
     
 @admin.register(RecoverySession)
 class RecoverySessionAdmin(admin.ModelAdmin):

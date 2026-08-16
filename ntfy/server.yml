@@ -5,3 +5,8 @@ cert-file: "/etc/ntfy/certs/<URL>.ts.net.crt"
 key-file: "/etc/ntfy/certs/<URL>.ts.net.key"
 auth-file: "/var/lib/ntfy/auth.db"
 auth-default-access: "deny-all"
+
+web-push-public-key: "BDo9gW4QC8TfJpbiMVGZnSgyTpdpPg3fAIe7DuwGTUhksZ99NQY7U7qo2JbHMsuQvomnUCmumJZ7lcjz_-wCloU"
+web-push-private-key: "***REMOVED***"
+web-push-file: "/var/cache/ntfy/webpush.db"
+web-push-email-address: "sarlote.volosevic@gmail.com"

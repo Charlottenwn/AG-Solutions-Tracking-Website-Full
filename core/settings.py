@@ -45,6 +45,7 @@ SEVEN_API_KEY = read_secret("/app/secrets/seven_api_key.txt")
 NTFY_BASE_URL = os.environ.get("NTFY_BASE_URL", "http://ntfy:80")
 NTFY_USER = read_secret("/app/secrets/ntfy_user.txt")
 NTFY_PASSWORD = read_secret("/app/secrets/ntfy_password.txt")
+NTFY_TOPIC = os.environ.get("NTFY_TOPIC","ag-solutions-reminders")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "0") == "1"
@@ -90,7 +91,7 @@ CELERY_ENABLE_UTC = False
 DJANGO_CELERY_BEAT_TZ_AWARE = True
 CELERY_RESULT_EXTENDED = True
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
-CELERY_RESULT_EXPIRES = 60 * 60 * 24 * 7 #consult with boss for appropriate time
+CELERY_RESULT_EXPIRES = 60 * 60 * 24 * 2 #2 days retention
 
 # Celery worker limits
 
@@ -114,9 +115,17 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'main.middleware.SiteLanguageMiddleware',
 ]
 
+LANGUAGES = [
+    ('en', 'English'),
+    ('lt', 'Lietuvių'),
+]
 
+LOCALE_PATHS = [
+    BASE_DIR / 'locale',
+]
 
 ROOT_URLCONF = 'core.urls'
 
@@ -130,6 +139,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'main.context_processors.language_code',
             ],
         },
     },

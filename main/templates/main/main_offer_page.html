@@ -1,7 +1,8 @@
 {% load static %}
 {% load main_extras %}
+{% load i18n %}
 <!doctype html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE }}">
 
 <head>
     <meta charset="UTF-8" />
@@ -18,33 +19,35 @@
     <style type="text/tailwindcss">
         @variant dark (&:where(.dark, .dark *));
     </style>
-    <title>Main Commercial Offer Page</title>
+    <title>{% trans "Main Commercial Offer Page" %}</title>
 </head>
 
 <body class="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col text-sm transition-colors duration-200">
     <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div class="max-w-5xl mx-auto px-6 flex items-center justify-between">
-            <span class="text-gray-400 dark:text-gray-500 font-medium text-xs uppercase tracking-widest py-4">AG
+            <span class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-widest py-4">AG
                 Solutions</span>
-            <span
-                class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-widest py-4">Tracking</span>
             <div class="flex items-center gap-4">
-                <a href="/login_page/"
-                class="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 uppercase tracking-widest">
-                    Logout
-                </a>
-            <button id="darkToggle" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition">
-                <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" />
-                </svg>
-                <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 hidden" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15.07-6.07-.71.71M6.34 17.66l-.71.71m12.73 0-.71-.71M6.34 6.34l-.71-.71M12 5a7 7 0 1 1 0 14A7 7 0 0 1 12 5z" />
-                </svg>
-            </button>
+                <span
+                    class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-widest py-4"></span>
+                <form method="post" action="{% url 'toggle_language' %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-xs uppercase tracking-widest transition">
+                        {% if LANGUAGE_CODE == "lt" %}EN{% else %}LT{% endif %}
+                    </button>
+                </form>
+                <button id="darkToggle" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition">
+                    <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" />
+                    </svg>
+                    <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 hidden" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15.07-6.07-.71.71M6.34 17.66l-.71.71m12.73 0-.71-.71M6.34 6.34l-.71-.71M12 5a7 7 0 1 1 0 14A7 7 0 0 1 12 5z" />
+                    </svg>
+                </button>
             </div>
         </div>
     </nav>
@@ -56,17 +59,21 @@
                 stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
-            Back
+            {% trans "Back" %}
         </button>
 
             {% if show_completed %}
             <a href="?" class="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200">
-                Hide completed orders
+                {% trans "Hide completed orders" %}
             </a>
             {% else %}
             <a href="?show_completed=1"
                 class="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200">
-                Show {{ completed_orders_count }} completed order{{ completed_orders_count|pluralize }}
+                {% blocktrans count counter=completed_orders_count %}
+                Show {{ counter }} completed order
+                {% plural %}
+                Show {{ counter }} completed orders
+                {% endblocktrans %}
             </a>
             {% endif %}
 
@@ -82,43 +89,43 @@
                                 d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
                         </svg>
                     </span>
-                    <input type="text" id="searchInput" placeholder="Search company..."
+                    <input type="text" id="searchInput" placeholder="{% trans 'Search company...' %}"
                         class="w-full pl-9 pr-4 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500" />
                 </div>
                 <select id="filterSelect"
                     class="border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-500">
-                    <option value="all">All payments/transport</option>
-                    <option value="paid">Paid</option>
-                    <option value="unpaid">Unpaid</option>
-                    <option value="overdue">Overdue</option>
-                    <option value="transport-pending">Transport pending</option>
-                    <option value="transport-confirmed">Transport confirmed</option>
-                    <option value="transport-overdue">Transport overdue</option>
-                    <option value="furniture-due">Furniture reminder due</option>
-                    <option value="package-due">Package clarification due</option>
-                    <option value="date-newest">Newest first (by contract date)</option>
-                    <option value="date-oldest">Oldest first (by contract date)</option>
-                    <option value="production-end-newest">Newest first (by production end date)</option>
-                    <option value="production-end-oldest">Oldest first (by production end date)</option>
+                    <option value="all">{% trans "All payments/transport" %}</option>
+                    <option value="paid">{% trans "Paid" %}</option>
+                    <option value="unpaid">{% trans "Unpaid" %}</option>
+                    <option value="overdue">{% trans "Overdue" %}</option>
+                    <option value="transport-pending">{% trans "Transport pending" %}</option>
+                    <option value="transport-confirmed">{% trans "Transport confirmed" %}</option>
+                    <option value="transport-overdue">{% trans "Transport overdue" %}</option>
+                    <option value="furniture-due">{% trans "Furniture reminder due" %}</option>
+                    <option value="package-due">{% trans "Package clarification due" %}</option>
+                    <option value="date-newest">{% trans "Newest first (by contract date)" %}</option>
+                    <option value="date-oldest">{% trans "Oldest first (by contract date)" %}</option>
+                    <option value="production-end-newest">{% trans "Newest first (by production end date)" %}</option>
+                    <option value="production-end-oldest">{% trans "Oldest first (by production end date)" %}</option>
                 </select>
             </div>
 
             <!-- Stat Cards -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total orders</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">{% trans "Total orders" %}</p>
                     <p class="text-2xl font-medium text-gray-900 dark:text-white">{{ stats.total_orders }}</p>
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Payments past due</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">{% trans "Payments past due" %}</p>
                     <p class="text-2xl font-medium text-red-600 dark:text-red-400">{{ stats.payments_past_due }}</p>
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Furniture/Package reminders due</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">{% trans "Furniture/Package reminders due" %}</p>
                     <p class="text-2xl font-medium text-amber-600 dark:text-amber-400" id="stat-furniture-package-due">{{ stats.furniture_package_reminders_due }}</p>
                 </div>
                 <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Due this week</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">{% trans "Due this week" %}</p>
                     <p class="text-2xl font-medium text-amber-600 dark:text-amber-400" id="stat-due-this-week">{{ stats.due_this_week }}</p>
                 </div>
             </div>
@@ -127,6 +134,8 @@
             <div id="orderList" class="flex flex-col gap-3">
 
                 {% for card in order_cards %}
+                {% trans "Not assigned yet" as not_assigned_text %}
+                {% blocktrans asvar no_reminder_text with contact=card.client_order.client_contact %}No reminder sent yet · {{ contact }}{% endblocktrans %}
                 <div data-search="{{ card.search_text }}" data-statuses="{{ card.status_tokens }}" data-contract-date="{{ card.contract_date_iso }}" data-production-end-date="{{ card.production_end_date_iso }}"
                     class="order-card border border-gray-200 dark:border-gray-600 rounded-xl p-4 flex items-start justify-between gap-4 hover:border-gray-300 dark:hover:border-gray-500 transition-colors">
                     <div>
@@ -143,16 +152,16 @@
                             </svg>
                             {% endif %}
                             <span>{{ card.transport_status.label }}</span>
-                            <span class="cursor-help text-gray-400" title="Courier: {{ card.transport_status.courier|default:'Not assigned yet' }}">ⓘ</span>
+                            <span class="cursor-help text-gray-400" title="{% trans 'Courier:' %} {{ card.transport_status.courier|default:not_assigned_text }}">ⓘ</span>
                             {% if card.transport_status.reminder_sent and card.transport_status.token != 'confirmed' %}
-                            <span title="Transport reminder sent"
+                            <span title="{% trans 'Transport reminder sent' %}"
                                 class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 cursor-help">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                 </svg>
-                                Transport reminder sent
+                                {% trans "Transport reminder sent" %}
                             </span>
                                 {% elif card.transport_status.token != 'confirmed' %}
                                 <form method="post" action="{% url 'mark_transport_reminder_sent' card.order.id %}" class="mark-sent-form"
@@ -160,7 +169,7 @@
                                     {% csrf_token %}
                                     <button type="submit"
                                         class="text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline cursor-pointer">
-                                        Mark sent
+                                        {% trans "Mark sent" %}
                                     </button>
                                 </form>
                             {% endif %}
@@ -170,23 +179,23 @@
                         <!-- Client deposit -->
                         <span
                             class="inline-flex max-w-full whitespace-normal break-words items-start text-xs font-medium px-2.5 py-1 rounded-full {{ card.client_status.token|deposit_badge_class }}">
-                            {% if card.client_status.paid %}Client Deposit Paid ✓{% else %}Client {{ card.client_status.label }}{% endif %}
+                            {% if card.client_status.paid %}{% trans "Client Deposit Paid ✓" %}{% else %}{% trans "Client" %} {{ card.client_status.label }}{% endif %}
                         </span>
                         {% if not card.client_status.paid %}
                             {% if card.client_status.reminder_sent %}
-                            <span title="Client deposit reminder sent"
+                            <span title="{% trans 'Client deposit reminder sent' %}"
                                 class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 cursor-help">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                 </svg>
-                                Client reminder sent
+                                {% trans "Client reminder sent" %}
                             </span>
                             {% else %}
-                            <span title="No reminder sent yet · {{ card.client_order.client_contact }}"
+                            <span title="{{ no_reminder_text }}"
                                 class="text-xs text-gray-400 dark:text-gray-500 cursor-help">
-                                no reminder sent ⓘ
+                                {% trans "no reminder sent ⓘ" %}
                             </span>
                             {% endif %}
                         {% endif %}
@@ -195,29 +204,29 @@
                         <!-- Factory deposit -->
                         <span
                             class="inline-flex max-w-full whitespace-normal break-words items-start text-xs font-medium px-2.5 py-1 rounded-full {{ card.factory_status.token|deposit_badge_class }}">
-                            {% if card.factory_status.paid %}Factory Deposit Paid ✓{% else %}Factory {{ card.factory_status.label }}{% endif %}
+                            {% if card.factory_status.paid %}{% trans "Factory Deposit Paid ✓" %}{% else %}{% trans "Factory" %} {{ card.factory_status.label }}{% endif %}
                         </span>
                         {% if not card.factory_status.paid %}
                             {% if card.factory_status.reminder_sent %}
-                            <span title="Factory deposit reminder sent"
+                            <span title="{% trans 'Factory deposit reminder sent' %}"
                                 class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 cursor-help">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24"
                                     stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                 </svg>
-                                Factory reminder sent
+                                {% trans "Factory reminder sent" %}
                             </span>
                             {% else %}
-                            <span title="no reminder sent yet" class="text-xs text-gray-400 dark:text-gray-500 cursor-help">
-                                no reminder sent ⓘ
+                            <span title="{% trans 'no reminder sent yet' %}" class="text-xs text-gray-400 dark:text-gray-500 cursor-help">
+                                {% trans "no reminder sent ⓘ" %}
                             </span>
                             {% endif %}
                         {% endif %}
                          {% if card.furniture_status or card.package_clarification_status %}
                         <div class="w-full border-t border-gray-200 dark:border-gray-600 my-0.5"></div>
                         {% endif %}
- 
+
                         {% if card.furniture_status and not card.furniture_status.reminder_sent %}
                         <span id="furniture-badge-{{ card.factory_order.id }}"
                             class="inline-flex max-w-full whitespace-normal break-words items-start text-xs font-medium px-2.5 py-1 rounded-full {{ card.furniture_status.token|deposit_badge_class }}">
@@ -230,11 +239,11 @@
                             {% csrf_token %}
                             <button type="submit"
                                 class="text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline cursor-pointer">
-                                Mark sent
+                                {% trans "Mark sent" %}
                             </button>
                         </form>
                         {% endif %}
- 
+
                         {% if card.package_clarification_status and not card.package_clarification_status.reminder_sent %}
                         <span id="package-badge-{{ card.factory_order.id }}"
                             class="inline-flex max-w-full whitespace-normal break-words items-start text-xs font-medium px-2.5 py-1 rounded-full {{ card.package_clarification_status.token|deposit_badge_class }}">
@@ -247,7 +256,7 @@
                             {% csrf_token %}
                             <button type="submit"
                                 class="text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline cursor-pointer">
-                                Mark sent
+                                {% trans "Mark sent" %}
                             </button>
                         </form>
                         {% endif %}
@@ -255,22 +264,22 @@
                 </div>
                 {% empty %}
                 <p class="text-sm text-gray-400 dark:text-gray-500 text-center py-8">
-                    No orders yet — run <code>python manage.py sync_sheet</code> to pull data from the Google Sheet.
+                    {% blocktrans %}No orders yet — run <code>python manage.py sync_sheet</code> to pull data from the Google Sheet.{% endblocktrans %}
                 </p>
                 {% endfor %}
- 
+
             </div>
         </section>
     </main>
- 
+
     <footer class="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
         <div class="max-w-5xl mx-auto px-6 py-4">
             <p class="text-xs text-gray-400 dark:text-gray-500 text-center m-0">
-                &copy; 2026 AG Solutions UAB. All rights reserved.
+                &copy; 2026 AG Solutions UAB. {% trans "All rights reserved." %}
             </p>
         </div>
     </footer>
-    
+
     <script src="{% static 'main/js/darkmode.js' %}"></script>
     <script src="{% static 'main/js/filter.js' %}"></script>
     <script src="{% static 'main/js/reminders.js' %}"></script>

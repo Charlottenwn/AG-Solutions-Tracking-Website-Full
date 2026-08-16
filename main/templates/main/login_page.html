@@ -1,6 +1,7 @@
 {% load static %}
+{% load i18n %}
 <!doctype html>
-<html lang="en">
+<html lang="{{ LANGUAGE_CODE }}">
 
 <head>
     <meta charset="UTF-8" />
@@ -17,7 +18,7 @@
     <style type="text/tailwindcss">
     @variant dark (&:where(.dark, .dark *));
 </style>
-    <title>Login — AG Solutions</title>
+    <title>{% trans "Login" %} — AG Solutions</title>
 </head>
 
 <body class="min-h-screen bg-gray-100 dark:bg-gray-900 flex flex-col text-sm transition-colors duration-200">
@@ -28,6 +29,12 @@
             <div class="flex items-center gap-4">
                 <span
                     class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-widest py-4"></span>
+                <form method="post" action="{% url 'toggle_language' %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-xs uppercase tracking-widest transition">
+                        {% if LANGUAGE_CODE == "lt" %}EN{% else %}LT{% endif %}
+                    </button>
+                </form>
                 <button id="darkToggle" class="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition">
                     <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none"
                         viewBox="0 0 24 24" stroke="currentColor">
@@ -48,7 +55,7 @@
         <div
             class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-8 w-full max-w-sm">
             <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-6">
-                Sign in
+                {% trans "Sign in" %}
             </p>
             <form novalidate id="loginForm" method="post" class="flex flex-col gap-4">
                 {% csrf_token %}
@@ -56,22 +63,22 @@
                 <p class="text-xs text-red-600 dark:text-red-400">{{ error }}</p>
                 {% endif %}
                 <div class="flex flex-col gap-1.5">
-                    <label for="username" class="text-gray-500 dark:text-gray-400">Username</label>
+                    <label for="username" class="text-gray-500 dark:text-gray-400">{% trans "Username" %}</label>
                     <input type="text" id="username" name="username" required
                         class="w-full border border-gray-400 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-1.5" />
                 </div>
                 <div class="flex flex-col gap-1.5">
-                    <label for="password" class="text-gray-500 dark:text-gray-400">Password</label>
+                    <label for="password" class="text-gray-500 dark:text-gray-400">{% trans "Password" %}</label>
                     <input type="password" id="password" name="password" required
                         class="w-full border border-gray-400 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-1.5" />
                 </div>
                 <a href="{% url 'recover_password_request_page' %}"
                         class="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-200 self-end">
-                        Forgot password?
+                        {% trans "Forgot password?" %}
                 </a>
                 <button type="submit"
                     class="mt-2 w-full bg-gray-900 hover:bg-gray-700 text-white text-center font-medium py-2 rounded-lg transition-colors cursor-pointer">
-                    Login
+                    {% trans "Login" %}
                 </button>
             </form>
         </div>
@@ -80,7 +87,7 @@
     <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
         <div class="max-w-5xl mx-auto px-6 py-4">
             <p class="text-xs text-gray-400 dark:text-gray-500 text-center">
-                &copy; 2026 AG Solutions UAB. All rights reserved.
+                &copy; 2026 AG Solutions UAB. {% trans "All rights reserved." %}
             </p>
         </div>
     </footer>

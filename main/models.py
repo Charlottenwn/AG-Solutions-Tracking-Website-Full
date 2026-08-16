@@ -219,24 +219,6 @@ class RecoveryLockout(models.Model):
 
     def __str__(self):
         return f"Recovery lockout state for {self.user.username}"
-    
-class ApiToken(models.Model):
-    label = models.CharField(
-        max_length=100,
-        help_text="Which machine/coworker this token belongs to, e.g. 'Jonas — office PC'."
-    )
-    token = models.CharField(max_length=64, unique=True, editable=False)
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    last_used_at = models.DateTimeField(null=True, blank=True)
-
-    def save(self, *args, **kwargs):
-        if not self.token:
-            self.token = secrets_module.token_hex(32)
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.label} ({'active' if self.is_active else 'revoked'})"
 
 class RecoverySession(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recovery_sessions")
@@ -264,7 +246,27 @@ class RecoveryAttempt(models.Model):
     
 class NtfySentReminder(models.Model):
     reminder_id = models.CharField(max_length=100, unique=True)
-    last_sent_at = models.DateTimeField(auto_now=True)
+    last_sent_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f"{self.reminder_id} — last sent {self.last_sent_at:%Y-%m-%d %H:%M}"
+
+class SiteSettings(models.Model):
+    language = models.CharField(
+        max_length=5,
+        choices=[("en", "English"), ("lt", "Lietuvių")],
+        default="en",
+    )
+
+    class Meta:
+        verbose_name = "Site settings"
+        verbose_name_plural = "Site settings"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_language(cls):
+        obj, _created = cls.objects.get_or_create(pk=1)
+        return obj.language

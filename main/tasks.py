@@ -2,12 +2,10 @@ from datetime import timedelta
 from django.utils import timezone
 import json
 import logging
-from django.contrib.sites import requests
 import requests
 from celery import shared_task
 from django.core.management import call_command
 from .services import get_due_reminders
-
 from main.models import NtfySentReminder
 from django.conf import settings
 
@@ -25,7 +23,7 @@ def sync_sheet_task(self):
     
 def _push_ntfy(message, title="AG Solutions Reminder"):
     response = requests.post(
-        f"{settings.NTFY_BASE_URL}/ag-solutions-reminders",
+        f"{settings.NTFY_BASE_URL}/{settings.NTFY_TOPIC}",
         data=message.encode("utf-8"),
         headers={"Title": title, "Priority": "default"},
         auth=(settings.NTFY_USER, settings.NTFY_PASSWORD),
@@ -65,7 +63,8 @@ def check_reminders_task(self):
             raise self.retry(exc=exc)
 
         row, _ = NtfySentReminder.objects.update_or_create(
-            reminder_id=item["id"]
+            reminder_id=item["id"],
+            defaults={"last_sent_at": now},
         )
         pushed += 1
 

@@ -1,0 +1,415 @@
+# AG SOLUTIONS WEBSITE LITHUANIAN TRANSLATION
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR sarlote.volosevic@gmail.com, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-15 19:43+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: lt\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n % 10 == 1 && (n % 100 > 19 || n % 100 < "
+"11) ? 0 : (n % 10 >= 2 && n % 10 <=9) && (n % 100 > 19 || n % 100 < 11) ? "
+"1 : n % 1 != 0 ? 2: 3);\n"
+
+#: main/services.py:158 main/services.py:184
+msgid "no deposit info"
+msgstr "nėra depozito informacijos"
+
+#: main/services.py:170
+msgid "Paid ✓"
+msgstr "Sumokėta"
+
+#: main/services.py:207
+#, python-format
+msgid "%(type)s due"
+msgstr "%(type)s laukiama"
+
+#: main/services.py:209
+#, python-format
+msgid "%(type)s overdue by %(days)s days"
+msgstr "%(type)s vėluoja %(days)s dienas"
+
+#: main/services.py:213
+#, python-format
+msgid "%(type)s due in %(days)s days"
+msgstr "%(type)s ateina po %(days)s dienų"
+
+#: main/services.py:232 main/services.py:264
+#: main/templates/main/main_offer_page.html:101
+msgid "Transport pending"
+msgstr "Laukiama transporto"
+
+#: main/services.py:251
+#, python-format
+msgid "Transport confirmed · overdue by %(days)s days past original date"
+msgstr "Transportas užsakytas - vėluojama %(days)s dienas nuo pirmutines datos"
+
+#: main/services.py:255 main/templates/main/main_offer_page.html:102
+msgid "Transport confirmed"
+msgstr "Transportas užsakytas"
+
+#: main/services.py:258
+#, python-format
+msgid "Transport pending · overdue by %(days)s days"
+msgstr "Laukiama transporto - vėluojama %(days)s dienas"
+
+#: main/services.py:261
+#, python-format
+msgid "Transport pending · %(days)s days remaining"
+msgstr "Laukiama transporto - liko %(days)s dienos"
+
+#: main/services.py:283
+msgid "Furniture reminder sent"
+msgstr "Artėja furnitūros priminimo terminas"
+
+#: main/services.py:286
+msgid "Furniture reminder overdue by %(days)s days"
+msgstr "Furnitūros priminimas vėluoja %(days)s dienų"
+
+#: main/services.py:289
+msgid "Furniture reminder in %(days)s days"
+msgstr "Furnitūros priminimas po %(days)s dienų"
+
+#: main/services.py:308
+msgid "Package clarification reminder sent"
+msgstr "Pakuočių patikslinimo priminimas išsiųstas"
+
+#: main/services.py:311
+msgid "Package clarification overdue by %(days)s days"
+msgstr "Pakuočių patikslinimas vėluoja %(days)s dienas"
+
+#: main/services.py:314
+msgid "Package clarification in %(days)s days"
+msgstr "Pakuočių patikslinimas po %(days)s dienų"
+
+#: main/services.py:392
+#, python-format
+msgid "%(contract)s: Client %(label)s"
+msgstr "%(contract)s: Klientas %(label)s"
+
+#: main/services.py:396
+#, python-format
+msgid "%(contract)s: Factory %(label)s"
+msgstr "%(contract)s: Gamykla %(label)s"
+
+#: main/services.py:400 main/services.py:403 main/services.py:406
+#, python-format
+msgid "%(contract)s: %(label)s"
+msgstr "%(contract)s: %(label)s"
+
+#: main/templates/main/login_page.html:21
+#: main/templates/main/login_page.html:81
+msgid "Login"
+msgstr "Prisijungti"
+
+#: main/templates/main/login_page.html:58
+msgid "Sign in"
+msgstr "Prisiregistruoti"
+
+#: main/templates/main/login_page.html:66
+#: main/templates/main/recover_password_request_page.html:71
+msgid "Username"
+msgstr "Vartotojo vardas"
+
+#: main/templates/main/login_page.html:71
+msgid "Password"
+msgstr "Slaptažodis"
+
+#: main/templates/main/login_page.html:77
+msgid "Forgot password?"
+msgstr "Pamiršote slaptažodį?"
+
+#: main/templates/main/login_page.html:90
+#: main/templates/main/main_offer_page.html:278
+#: main/templates/main/recover_password_request_page.html:90
+#: main/templates/main/recover_password_verify_page.html:92
+#: main/templates/main/set_new_password_page.html:91
+msgid "All rights reserved."
+msgstr "Visos teisės saugomos"
+
+#: main/templates/main/main_offer_page.html:22
+msgid "Main Commercial Offer Page"
+msgstr "Pagrindinis komercinio pasiūlymo puslapis"
+
+#: main/templates/main/main_offer_page.html:62
+msgid "Back"
+msgstr "Atgal"
+
+#: main/templates/main/main_offer_page.html:67
+msgid "Hide completed orders"
+msgstr "Paslėpti pabaigtus užsakymus"
+
+#: main/templates/main/main_offer_page.html:72
+#, python-format
+msgid ""
+"\n"
+"                Show %(counter)s completed order\n"
+"                "
+msgid_plural ""
+"\n"
+"                Show %(counter)s completed orders\n"
+"                "
+msgstr[0] ""
+"\n"
+"                Parodyti %(counter)s užbaigtą užsakymą\n"
+"                "
+msgstr[1] ""
+"\n"
+"                Parodyti %(counter)s užbaigtus užsakymus\n"
+"                "
+
+#: main/templates/main/main_offer_page.html:92
+msgid "Search company..."
+msgstr "Ieškoti pagal kompanijos pavadinimą..."
+
+#: main/templates/main/main_offer_page.html:97
+msgid "All payments/transport"
+msgstr "Visi mokėjimai/transportas"
+
+#: main/templates/main/main_offer_page.html:98
+msgid "Paid"
+msgstr "Sumokėta"
+
+#: main/templates/main/main_offer_page.html:99
+msgid "Unpaid"
+msgstr "Nesumokėta"
+
+#: main/templates/main/main_offer_page.html:100
+msgid "Overdue"
+msgstr "Vėluoja"
+
+#: main/templates/main/main_offer_page.html:103
+msgid "Transport overdue"
+msgstr "Transporto užsakymas vėluoja"
+
+#: main/templates/main/main_offer_page.html:104
+msgid "Furniture reminder due"
+msgstr "Artėja furnitūros priminimo terminas"
+
+#: main/templates/main/main_offer_page.html:105
+msgid "Package clarification due"
+msgstr "Artėja pakuočių priminimo terminas"
+
+#: main/templates/main/main_offer_page.html:106
+msgid "Newest first (by contract date)"
+msgstr "Naujausi pirma (pagal sutarties datą)"
+
+#: main/templates/main/main_offer_page.html:107
+msgid "Oldest first (by contract date)"
+msgstr "Seniausi pirma (pagal sutarties datą)"
+
+#: main/templates/main/main_offer_page.html:108
+msgid "Newest first (by production end date)"
+msgstr "Naujausi pirma (pagal gamybos pabaigos datą)"
+
+#: main/templates/main/main_offer_page.html:109
+msgid "Oldest first (by production end date)"
+msgstr "Seniausi pirma (pagal gamybos pabaigos datą"
+
+#: main/templates/main/main_offer_page.html:116
+msgid "Total orders"
+msgstr "Iš viso užsakymų"
+
+#: main/templates/main/main_offer_page.html:120
+msgid "Payments past due"
+msgstr "Vėluojantys mokėjimai"
+
+#: main/templates/main/main_offer_page.html:124
+msgid "Furniture/Package reminders due"
+msgstr "Artėjantys terminai dėl furnitūros/pakuočių"
+
+#: main/templates/main/main_offer_page.html:128
+msgid "Due this week"
+msgstr "Terminas baigiasi šią savaitę"
+
+#: main/templates/main/main_offer_page.html:137
+msgid "Not assigned yet"
+msgstr "Dar nepaskirta"
+
+#: main/templates/main/main_offer_page.html:138
+#, python-format
+msgid "No reminder sent yet · %(contact)s"
+msgstr "Priminimas dar nesiųstas · %(contact)s"
+
+#: main/templates/main/main_offer_page.html:155
+msgid "Courier:"
+msgstr "Kurjeris:"
+
+#: main/templates/main/main_offer_page.html:157
+#: main/templates/main/main_offer_page.html:164
+msgid "Transport reminder sent"
+msgstr "Transporto priminimas išsiųstas"
+
+#: main/templates/main/main_offer_page.html:172
+#: main/templates/main/main_offer_page.html:242
+#: main/templates/main/main_offer_page.html:259
+msgid "Mark sent"
+msgstr "Pažymėti kaip išsiųsta"
+
+#: main/templates/main/main_offer_page.html:182
+msgid "Client Deposit Paid ✓"
+msgstr "Kliento depozitas sumokėtas ✓"
+
+#: main/templates/main/main_offer_page.html:182
+msgid "Client"
+msgstr "Klientas"
+
+#: main/templates/main/main_offer_page.html:186
+msgid "Client deposit reminder sent"
+msgstr "Kliento depozito priminimas išsiųstas"
+
+#: main/templates/main/main_offer_page.html:193
+msgid "Client reminder sent"
+msgstr "Kliento priminimas išsiųstas"
+
+#: main/templates/main/main_offer_page.html:198
+#: main/templates/main/main_offer_page.html:222
+msgid "no reminder sent ⓘ"
+msgstr "priminimas neišsiųstas ⓘ"
+
+#: main/templates/main/main_offer_page.html:207
+msgid "Factory Deposit Paid ✓"
+msgstr "Gamyklos depozitas sumokėtas ✓"
+
+#: main/templates/main/main_offer_page.html:207
+msgid "Factory"
+msgstr "Gamykla"
+
+#: main/templates/main/main_offer_page.html:211
+msgid "Factory deposit reminder sent"
+msgstr "Gamyklos depozito priminimas išsiųstas"
+
+#: main/templates/main/main_offer_page.html:218
+msgid "Factory reminder sent"
+msgstr "Gamyklos priminimas išsiųstas"
+
+#: main/templates/main/main_offer_page.html:221
+msgid "no reminder sent yet"
+msgstr "priminimas dar neišsiųstas"
+
+#: main/templates/main/main_offer_page.html:267
+msgid ""
+"No orders yet — run <code>python manage.py sync_sheet</code> to pull data "
+"from the Google Sheet."
+msgstr ""
+
+#: main/templates/main/recover_password_request_page.html:21
+msgid "Recover Password"
+msgstr "Atkurti slaptažodį"
+
+#: main/templates/main/recover_password_request_page.html:58
+msgid "Recover password"
+msgstr "Atkurti slaptažodį"
+
+#: main/templates/main/recover_password_request_page.html:61
+msgid ""
+"Enter your username. We'll text a recovery code to the phone number on file."
+msgstr ""
+"Įveskite savo vartotojo vardą. Išsiųsime atkūrimo kodą žinute į sistemoje "
+"nurodytą telefono numerį."
+
+#: main/templates/main/recover_password_request_page.html:77
+msgid "Send code"
+msgstr "Siųsti kodą"
+
+#: main/templates/main/recover_password_request_page.html:82
+msgid "Back to login"
+msgstr "Atgal į prisijungimą"
+
+#: main/templates/main/recover_password_verify_page.html:21
+msgid "Enter Recovery Code"
+msgstr "Įveskite atkūrimo kodą"
+
+#: main/templates/main/recover_password_verify_page.html:58
+msgid "Enter recovery code"
+msgstr "Įveskite atkūrimo kodą"
+
+#: main/templates/main/recover_password_verify_page.html:61
+#, python-format
+msgid ""
+"We texted a code to the phone on file for <strong>%(username)s</strong>. "
+"Enter it below within %(recovery_code_valid_minutes)s\n"
+"                minutes."
+msgstr ""
+"Kodą išsiuntėme telefono numeriu, priskirtu <strong>%(username)s</strong>. "
+"Įveskite jį per %(recovery_code_valid_minutes)s\n"
+"                minutes."
+
+#: main/templates/main/recover_password_verify_page.html:72
+msgid "Recovery code"
+msgstr "Atkūrimo kodas"
+
+#: main/templates/main/recover_password_verify_page.html:78
+msgid "Verify"
+msgstr "Patvirtinti"
+
+#: main/templates/main/recover_password_verify_page.html:84
+msgid "Start over"
+msgstr "Pradėti iš naujo"
+
+#: main/templates/main/set_new_password_page.html:21
+msgid "Set New Password"
+msgstr "Nustatyti naują slaptažodį"
+
+#: main/templates/main/set_new_password_page.html:58
+msgid "Set new password"
+msgstr "Nustatyti naują slaptažodį"
+
+#: main/templates/main/set_new_password_page.html:61
+#, python-format
+msgid ""
+"For <strong>%(username)s</strong>. This link expires "
+"%(recovery_code_valid_minutes)s minutes after your code was verified."
+msgstr ""
+"Skirta <strong>%(username)s</strong>. Ši nuoroda galioja "
+"%(recovery_code_valid_minutes)s minučių nuo kodo patvirtinimo."
+
+#: main/templates/main/set_new_password_page.html:71
+msgid "New password"
+msgstr "Naujas slaptažodis"
+
+#: main/templates/main/set_new_password_page.html:76
+msgid "Confirm new password"
+msgstr "Patvirtinti naują slaptažodį"
+
+#: main/templates/main/set_new_password_page.html:82
+msgid "Set password"
+msgstr "Nustatyti slaptažodį"
+
+#: main/views.py:65
+msgid "Invalid or expired code."
+msgstr "Neteisingas arba nebegaliojantis kodas."
+
+#: main/views.py:87
+msgid "Password must be at least 14 characters."
+msgstr "Slaptažodis turi sudaryti bent 14 simbolių."
+
+#: main/views.py:89
+msgid "Passwords don't match."
+msgstr "Slaptažodžiai nesutampa"
+
+#: main/views.py:139
+msgid "No phone number on file for this account. Contact an admin."
+msgstr ""
+"Šiai paskyrai telefono numeris nenurodytas. Susisiekite su administratoriumi."
+
+#: main/views.py:143
+#, python-format
+msgid "Too many attempts. Try again after %(time)s."
+msgstr "Per daug bandymų. Bandykite dar kartą po %(time)s."
+
+#: main/views.py:166
+msgid "Invalid username or password."
+msgstr "Neteisingas vartotojo vardas arba slaptažodis."
+
+#: main/views.py:184
+msgid "unknown kind"
+msgstr "nežinoma rušis"

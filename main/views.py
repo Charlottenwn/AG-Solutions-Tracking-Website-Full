@@ -4,12 +4,13 @@ import logging
 from django.http import JsonResponse
 from django.shortcuts import redirect, get_object_or_404
 from django.views.decorators.http import require_POST
+from django.utils.translation import gettext as _
 from .constants import (
     RECOVERY_CODE_VALID_MINUTES,
     RESET_TOKEN_SALT,
     RESET_TOKEN_MAX_AGE_SECONDS,
     )
-from .models import FactoryOrder, Order, RecoveryAttempt, RecoverySession
+from .models import FactoryOrder, Order, RecoveryAttempt, RecoverySession, SiteSettings
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
@@ -24,12 +25,20 @@ from .services import (
     RecoveryCodeLocked, NoPhoneNumberOnFile,
 )
 import functools
-from .models import ApiToken, FactoryOrder
+from .models import FactoryOrder
 from .services import (
     get_due_reminders, compute_deposit_status, compute_transport_status,
     get_client_ip, compute_furniture_status, compute_package_clarification_status,
     is_order_complete, extract_contract_date
 )
+
+
+@require_POST
+def toggle_language(request):
+    settings_obj, _created = SiteSettings.objects.get_or_create(pk=1)
+    settings_obj.language = "lt" if settings_obj.language == "en" else "en"
+    settings_obj.save()
+    return redirect(request.META.get("HTTP_REFERER", "main_offer_page"))
 
 
 def recover_password_verify(request):
@@ -52,8 +61,8 @@ def recover_password_verify(request):
                 return redirect("set_new_password_page")
         except User.DoesNotExist:
             pass
-            
-        error = "Invalid or expired code."
+
+        error = _("Invalid or expired code.")
 
     return render(request, "main/recover_password_verify_page.html", {"error": error, "username": username, "recovery_code_valid_minutes": RECOVERY_CODE_VALID_MINUTES})
 
@@ -75,9 +84,9 @@ def set_new_password(request):
         password1 = request.POST.get("password1", "")
         password2 = request.POST.get("password2", "")
         if len(password1) < 14:
-            error = "Password must be at least 14 characters."
+            error = _("Password must be at least 14 characters.")
         elif password1 != password2:
-            error = "Passwords don't match."
+            error = _("Passwords don't match.")
         else:
             user.set_password(password1)
             user.save()
@@ -111,13 +120,13 @@ def recover_password_request(request):
     if request.method == "POST":
         username = request.POST.get("username", "").strip()
         ip = get_client_ip(request)
-        
+
         try:
             user = User.objects.get(username=username)
-            
+
             recovery_session = RecoverySession.objects.create(user=user, ip_address=ip,)
             request.session["recovery_session_id"] = recovery_session.id
-            
+
             generate_and_send_recovery_code(user, ip_address=ip, recovery_session=recovery_session)
             request.session["recovery_username"] = username
             return redirect("recover_password_verify_page")
@@ -127,12 +136,13 @@ def recover_password_request(request):
             return redirect("recover_password_verify_page")
 
         except NoPhoneNumberOnFile:
-            error = "No phone number on file for this account. Contact an admin."
+            error = _("No phone number on file for this account. Contact an admin.")
 
         except RecoveryCodeLocked as exc:
             error = (
-                f"Too many attempts. Try again after "
-                f"{timezone.localtime(exc.locked_until).strftime('%H:%M')}."
+                _("Too many attempts. Try again after %(time)s.") % {
+                    "time": timezone.localtime(exc.locked_until).strftime('%H:%M')
+                }
             )
 
     return render(
@@ -140,21 +150,21 @@ def recover_password_request(request):
         "main/recover_password_request_page.html",
         {"error": error},
     )
-    
+
 def login_page(request):
     error = None
-    
+
     if request.method == "POST":
         username = request.POST.get("username", "").strip()
         password = request.POST.get("password", "")
-        
+
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
             return redirect("main_offer_page")
         else:
-            error = "Invalid username or password."
-            
+            error = _("Invalid username or password.")
+
     return render(request, 'main/login_page.html', {"error": error})
 
 def logout_view(request):
@@ -171,7 +181,7 @@ def mark_reminder_sent(request, kind, factory_order_id):
         factory_order.is_package_clarification_reminder_sent = True
     else:
         if request.headers.get("X-Requested-With") == "fetch":
-            return JsonResponse({"ok": False, "error": "unknown kind"}, status=400)
+            return JsonResponse({"ok": False, "error": _("unknown kind")}, status=400)
         return redirect("main_offer_page")
 
     factory_order.save()
@@ -190,7 +200,7 @@ def mark_transport_reminder_sent(request, order_id):
     if request.headers.get("X-Requested-With") == "fetch":
         return JsonResponse({"ok": True})
     return redirect("main_offer_page")
-    
+
 @login_required(login_url='login_page')
 def main_offer_page(request):
     today = timezone.now().date()
@@ -208,7 +218,7 @@ def main_offer_page(request):
 
     order_cards = []
     completed_orders_count = 0
-    
+
     for order in orders:
         client_order = order.clientorder_set.first()
         factory_order = order.factoryorder_set.first()
@@ -244,7 +254,7 @@ def main_offer_page(request):
         ]))
 
         contract_date = extract_contract_date(order.contract_number)
-        
+
         order_cards.append({
             "order": order,
             "client_order": client_order,
@@ -287,8 +297,8 @@ def main_offer_page(request):
             )
             or (
                 card["furniture_status"] and card["furniture_status"]["days_remaining"] is not None
-                and 0 <= card["furniture_status"]["days_remaining"] <= 3 
-                and not card["furniture_status"]["reminder_sent"]   
+                and 0 <= card["furniture_status"]["days_remaining"] <= 3
+                and not card["furniture_status"]["reminder_sent"]
             )
             or (
                 card["package_clarification_status"] and card["package_clarification_status"]["days_remaining"] is not None
@@ -297,7 +307,7 @@ def main_offer_page(request):
             )
         )
     )
-    
+
     furniture_package_reminders_due = sum(
         1
         for card in order_cards
@@ -306,17 +316,17 @@ def main_offer_page(request):
             or (card["package_clarification_status"] and card["package_clarification_status"]["due"]) and not card["package_clarification_status"]["reminder_sent"]
         )
     )
-    
+
     stats = {
         "total_orders": total_orders,
         "payments_past_due": payments_past_due,
         "due_this_week": due_this_week,
         "furniture_package_reminders_due": furniture_package_reminders_due,
     }
-    
+
     latest_sync = get_latest_sync_result()
     latest_sync_iso = latest_sync.date_done.isoformat() if latest_sync else ""
-    
+
     return render(request, 'main/main_offer_page.html', {
         "order_cards": order_cards,
         "stats": stats,
@@ -324,33 +334,6 @@ def main_offer_page(request):
         "completed_orders_count": completed_orders_count,
         "latest_sync_iso": latest_sync_iso,
         })
-
-def api_token_required(view_func):
-    @functools.wraps(view_func)
-    def wrapper(request, *args, **kwargs):
-        print("Authorization header:", repr(request.headers.get("Authorization")))
-        print("META HTTP_AUTHORIZATION:", repr(request.META.get("HTTP_AUTHORIZATION")))
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            return JsonResponse({"error": "Missing or malformed Authorization header"}, status=401)
-
-        token_value = auth_header.removeprefix("Bearer ").strip()
-        try:
-            token = ApiToken.objects.get(token=token_value, is_active=True)
-        except ApiToken.DoesNotExist:
-            return JsonResponse({"error": "Invalid or revoked token"}, status=403)
-
-        token.last_used_at = timezone.now()
-        token.save(update_fields=["last_used_at"])
-
-        return view_func(request, *args, **kwargs)
-    return wrapper
-
-@api_token_required
-def reminders_due_api(request):
-    today = timezone.now().date()
-    due = get_due_reminders(today)
-    return JsonResponse({"due_reminders": due})
 
 @login_required
 def latest_sync_time(request):

@@ -69,4 +69,7 @@ services:
       - ./ntfy/server.yml:/etc/ntfy/server.yml:ro
       - runtime_secrets:/run/secrets:ro
       - ./certs:/etc/ntfy/certs:ro
+      - /var/lib/ntfy:/var/lib/ntfy
+    env_file:
+      - .env-docker/.env.ntfy
     restart: unless-stopped
