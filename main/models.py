@@ -1,11 +1,8 @@
 from django.utils import timezone
 from django.db import models
 from django.conf import settings
-from gunicorn.config import User
-from gunicorn.config import User
 from .choices import Status, PaymentType
 from .constants import REMINDER_DAYS_BEFORE
-import secrets as secrets_module
 
 class Status_recovery(models.TextChoices):
     INITIATED = "initiated", "Initiated"

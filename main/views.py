@@ -1,5 +1,3 @@
-from cProfile import label
-from datetime import date
 import logging
 from django.http import JsonResponse
 from django.shortcuts import redirect, get_object_or_404
@@ -15,7 +13,7 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login
 from .models import Order, FactoryOrder, Transport
 from django.contrib.auth.decorators import login_required
 from django.core import signing
@@ -24,10 +22,9 @@ from .services import (
     generate_and_send_recovery_code, get_latest_sync_result, get_latest_sync_result, verify_recovery_code,
     RecoveryCodeLocked, NoPhoneNumberOnFile,
 )
-import functools
 from .models import FactoryOrder
 from .services import (
-    get_due_reminders, compute_deposit_status, compute_transport_status,
+    compute_deposit_status, compute_transport_status,
     get_client_ip, compute_furniture_status, compute_package_clarification_status,
     is_order_complete, extract_contract_date
 )
