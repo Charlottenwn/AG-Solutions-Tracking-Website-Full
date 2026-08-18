@@ -2,5 +2,8 @@
     "python.REPL.enableREPLSmartSend": false,
     "python.analysis.extraPaths": [
         "./core"
-    ]
+    ],
+
+    "html.validate.scripts": false
+
 }
