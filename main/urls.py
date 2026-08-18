@@ -12,4 +12,5 @@ urlpatterns = [
     path('mark_transport_reminder_sent/<int:order_id>/', views.mark_transport_reminder_sent, name='mark_transport_reminder_sent'),
     path('api/latest_sync/', views.latest_sync_time, name='latest_sync_time'),
     path('toggle_language/', views.toggle_language, name='toggle_language'),
+    path('logout/', views.logout_view, name='logout_view'),
 ]

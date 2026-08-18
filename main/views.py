@@ -13,7 +13,7 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from .models import Order, FactoryOrder, Transport
 from django.contrib.auth.decorators import login_required
 from django.core import signing
@@ -165,6 +165,7 @@ def login_page(request):
     return render(request, 'main/login_page.html', {"error": error})
 
 def logout_view(request):
+    logout(request)
     return redirect("login_page")
 
 @login_required(login_url='login_page')
