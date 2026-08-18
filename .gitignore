@@ -24,4 +24,4 @@ media/
 
 # Docker
 postgres_data/
-nginx.prod.conf
+nginx.conf
