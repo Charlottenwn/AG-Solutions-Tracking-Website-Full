@@ -25,5 +25,6 @@ fetch ee333081-ead5-4f07-aa96-b4a50092d2ba ntfy_password.vp.txt
 fetch daac5d3e-52e0-414f-b0a8-b49f00907b85 ntfy_user.txt
 fetch 954b0f69-80e8-4a51-9c12-b4a500926b5a ntfy_user_mz.txt
 fetch bca78245-3276-43ec-b4f5-b4a50092803c ntfy_user_vp.txt
+fetch 4ea1edd7-ca67-446a-a70a-b4af014b56d5 keepalive_phone_number.txt
 
 echo "All secrets fetched successfully."
