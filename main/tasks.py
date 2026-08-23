@@ -5,7 +5,7 @@ import logging
 import requests
 from celery import shared_task
 from django.core.management import call_command
-from .services import get_due_reminders
+from .services import get_due_reminders, send_keepalive_sms, check_seven_balance
 from main.models import NtfySentReminder
 from django.conf import settings
 
@@ -20,7 +20,7 @@ def sync_sheet_task(self):
     except Exception as exc:
         logger.exception("sync_sheet_task failed")
         raise self.retry(exc=exc)
-    
+
 def _push_ntfy(message, title="AG Solutions Reminder"):
     response = requests.post(
         f"{settings.NTFY_BASE_URL}/{settings.NTFY_TOPIC}",
@@ -69,3 +69,24 @@ def check_reminders_task(self):
         pushed += 1
 
     return {"pushed": pushed, "total_due": len(due)}
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=3600)
+def seven_sms_keepalive_task(self):
+    try:
+        message = send_keepalive_sms(settings.KEEPALIVE_PHONE_NUMBER) 
+        logger.info("Seven.io keepalive SMS sent successfully.")
+        return {"status": "sent", "message": message}
+    except Exception as exc:
+        logger.exception("Seven.io keepalive SMS failed")
+        raise self.retry(exc=exc)
+
+
+@shared_task(bind=True, max_retries=3, default_retry_delay=3600)
+def seven_balance_keepalive_task(self):
+    try:
+        balance = check_seven_balance()
+        logger.info(f"Seven.io balance check succeeded (keepalive). Balance: {balance}")
+        return {"balance": balance}
+    except Exception as exc:
+        logger.exception("Seven.io balance check (keepalive) failed")
+        raise self.retry(exc=exc)

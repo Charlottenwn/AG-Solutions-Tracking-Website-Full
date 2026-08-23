@@ -54,6 +54,23 @@ def _send_sms(phone_number, body):
     if result != "100":
         raise SmsDeliveryError(f"Seven API reported failure: {result}")
 
+
+def send_keepalive_sms(phone_number):
+    message = "AG Solutions — automated keepalive ping, no action needed."
+    _send_sms(phone_number, message)
+    return message
+
+
+def check_seven_balance():
+    response = requests.get(
+        "https://gateway.seven.io/api/balance",
+        headers={"X-API-Key": settings.SEVEN_API_KEY},
+        timeout=10,
+    )
+    response.raise_for_status()
+    return response.text.strip()
+
+
 def generate_and_send_recovery_code(target_user, ip_address=None, recovery_session=None):
     if recovery_session is None:
         raise ValueError("recovery_session must be provided for recovery code generation")
