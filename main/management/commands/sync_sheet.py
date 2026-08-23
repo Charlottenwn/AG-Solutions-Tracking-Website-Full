@@ -1,44 +1,12 @@
-"""
-Sync Google Sheet (single tab "Sheet1") into Postgres.
-
-Usage:
-    python manage.py sync_sheet
-
-Required environment variables:
-    GOOGLE_SHEETS_CREDENTIALS_PATH  - path to the service account credentials.json
-    GOOGLE_SHEET_ID_PATH            - path to a JSON file containing {"sheet_id": "..."}
-
-Sheet1 columns (left to right), confirmed via debug_sheet (actual headers
-are in Lithuanian):
-    SUTARTIES NR., GAMYKLOS UZSAKYMO Nr., GAMYKLOS SUMA, GAMYKLOS AVANSO SUMA,
-    GAMYKLAI GALUTINIS MOKEJIMAS, KLIENTAS, KLIENTO ATSTOVAS, GAMYBOS PRADZIA,
-    GAMYBOS PABAIGA, PRISTATYMO DATA, SALIS, SUMA, AVANSAS, AVANSO TERMINAS,
-    GALUTINIS MOKEJIMAS, GALUTINIO MOK TERMINAS, PRISTATYMO ADRESAS,
-    KONTAKTAS, VEZEJAS DSV/NTEX, VEZIMO KAINA
-
-Paid inference rule (as specified): a deposit/final payment is considered paid
-if the relevant total amount is 0, or the amount paid equals the total amount.
-This is recalculated on every sync run — it is NOT something to hand-edit in
-the admin afterward, since the next sync will recompute and overwrite it.
-
-NOTE: column header text in the actual sheet must match SHEET_COLUMNS below
-exactly (gspread's get_all_records() keys results by header row text). If your
-real headers differ even slightly (typos, extra spaces, parentheses), update
-SHEET_COLUMNS to match — don't silently rename your sheet to fit the code.
-"""
-import re
+import json
 import os
+import re
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from collections import Counter
-import json
-from main.models import (
-    Client, Order, ClientOrder, FactoryOrder,
-    DepositType, DepositClient, DepositFactory, Transport,
-)
 from main.constants import (DEPOSIT_TYPE_DEPOSIT, DEPOSIT_TYPE_FINAL, DEPOSIT_TYPE_FULL)
+from main.models import (Client, ClientOrder, DepositClient, DepositFactory, DepositType, FactoryOrder, Order, Transport)
 
 SHEET_TAB_NAME = "Sheet1"
 HEADER_ROW = 6
@@ -70,16 +38,20 @@ SHEET_COLUMNS = {
 
 def parse_decimal(value):
     """
-    Sheet amounts come through like '  4,176.00  € ' or '  -    € ' (a dash
-    means zero/not yet entered, not a parsing failure).
+    Sheet amounts come through like '4,176.00 €' or '-'.
+    A dash means zero/not entered.
     """
     if value in (None, ""):
         return None
+
     text = str(value).replace("€", "").strip()
     text = text.replace(" ", "")
+
     if text in ("", "-", "—"):
         return Decimal("0")
+
     text = text.replace(",", "")
+
     try:
         return Decimal(text)
     except InvalidOperation:
@@ -87,76 +59,133 @@ def parse_decimal(value):
 
 
 def parse_date(value):
-    """Sheet dates come through like '2026.02.09'; '-' means not set."""
+    """Parse supported sheet date formats."""
     if not value:
         return None
+
     value = str(value).strip()
+
     if value in ("-", "—"):
         return None
-    # Date range format: "19-21/08/2026" — day range within one month/year
-    range_match = re.match(r"^(\d{1,2})-(\d{1,2})/(\d{1,2})/(\d{4})$", value)
+
+    # Date range: 19-21/08/2026 -> use start date
+    range_match = re.match(
+        r"^(\d{1,2})-(\d{1,2})/(\d{1,2})/(\d{4})$",
+        value,
+    )
+
     if range_match:
         start_day, end_day, month, year = range_match.groups()
+
         try:
-            return datetime.strptime(f"{year}-{month}-{start_day}", "%Y-%m-%d").date()
+            return datetime.strptime(
+                f"{year}-{month}-{start_day}",
+                "%Y-%m-%d",
+            ).date()
         except ValueError:
             return None
-    for fmt in ("%Y.%m.%d", "%Y-%m-%d", "%d/%m/%Y", "%d.%m.%Y", "%m/%d/%Y"):
+
+    for fmt in ("%Y.%m.%d", "%Y-%m-%d", "%d/%m/%Y", "%d.%m.%Y", "%m/%d/%Y",):
         try:
             return datetime.strptime(value, fmt).date()
         except ValueError:
             continue
+
     return None
 
 
 def is_paid(amount, total):
-    """Paid if the total is zero, or the amount paid matches the total."""
+    """Paid if total is zero, or paid amount equals total."""
     if total is not None and total == 0:
         return True
+
     if amount is not None and total is not None and amount == total:
         return True
+
     return False
 
 
 def load_sheet_id(sheet_id_json_path):
-    """
-    GOOGLE_SHEET_ID_PATH points at a JSON file like:
-        { "sheet_id": "1AbCxyz...actualSheetId..." }
-    rather than the env var holding the ID directly.
-    """
-    import json
     with open(sheet_id_json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
+
     sheet_id = data.get("sheet_id")
+
     if not sheet_id:
-        raise ValueError(
-            f"'{sheet_id_json_path}' does not contain a 'sheet_id' key."
-        )
+        raise ValueError(f"'{sheet_id_json_path}' does not contain a 'sheet_id' key.")
+
     return sheet_id
 
 
 def get_sheet_rows():
     import gspread
     from google.oauth2 import service_account
-    
+
     creds_path = os.environ["GOOGLE_SHEETS_CREDENTIALS_PATH"]
     sheet_id_json_path = os.environ["GOOGLE_SHEET_ID_PATH"]
+
     sheet_id = load_sheet_id(sheet_id_json_path)
 
     scopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
-    creds = service_account.Credentials.from_service_account_file(creds_path, scopes=scopes)
+
+    creds = service_account.Credentials.from_service_account_file(
+        creds_path,
+        scopes=scopes,
+    )
+
     client = gspread.authorize(creds)
 
     sheet = client.open_by_key(sheet_id)
     worksheet = sheet.worksheet(SHEET_TAB_NAME)
+
     return worksheet.get_all_records(head=HEADER_ROW)
+
+
+def update_if_changed(obj, defaults):
+    """
+    Update an existing object only when one or more values changed.
+    """
+    changed_fields = []
+
+    for field, new_value in defaults.items():
+        if getattr(obj, field) != new_value:
+            setattr(obj, field, new_value)
+            changed_fields.append(field)
+
+    if changed_fields:
+        obj.save(update_fields=changed_fields)
+        return True
+
+    return False
+
+
+def get_or_create_then_update(model, lookup, defaults):
+    """
+    Create the object if it does not exist.
+
+    If it already exists, only update fields whose values changed.
+
+    Returns:
+        object, created, updated
+    """
+    obj, created = model.objects.get_or_create(
+        **lookup,
+        defaults=defaults,
+    )
+
+    if created:
+        return obj, True, False
+
+    updated = update_if_changed(obj, defaults)
+
+    return obj, False, updated
 
 
 class Command(BaseCommand):
     help = "Sync orders from the Google Sheet (Sheet1) into the database."
 
     def handle(self, *args, **options):
-        self._warnings = []  # collected across handle() and _sync_row()
+        self._warnings = []
 
         rows = get_sheet_rows()
 
@@ -169,7 +198,9 @@ class Command(BaseCommand):
                 "If the sheet is genuinely meant to be empty, clear the "
                 "database manually instead of relying on sync."
             )
+
             self.stderr.write(self.style.ERROR(msg))
+
             return {
                 "status": "aborted",
                 "reason": msg,
@@ -177,25 +208,68 @@ class Command(BaseCommand):
                 "skipped": 0,
                 "duplicates": 0,
                 "deleted": 0,
+                "updated": 0,
                 "warnings": [],
             }
 
         synced = 0
         skipped = 0
+        updated = 0
         seen_contracts = set()
 
         contract_numbers = [
-            str(r.get(SHEET_COLUMNS["contract_number"], "")).strip()
+            str(
+                r.get(
+                    SHEET_COLUMNS["contract_number"],
+                    "",
+                )
+            ).strip()
             for r in rows
-            if str(r.get(SHEET_COLUMNS["contract_number"], "")).strip()
+            if str(
+                r.get(
+                    SHEET_COLUMNS["contract_number"],
+                    "",
+                )
+            ).strip()
         ]
 
-        counts = Counter(contract_numbers)
+        counts = {}
+
+        for contract in contract_numbers:
+            counts[contract] = counts.get(contract, 0) + 1
+
         duplicate_count = sum(count - 1 for count in counts.values() if count > 1)
-        duplicated_contracts = [contract for contract, count in counts.items() if count > 1]
+
+        duplicated_contracts = {
+            contract for contract, count in counts.items() if count > 1
+        }
+
+        # These don't change during a sync, so only look them up once.
+        deposit_type_deposit, _ = DepositType.objects.get_or_create(
+            type_name=DEPOSIT_TYPE_DEPOSIT
+        )
+
+        deposit_type_final, _ = DepositType.objects.get_or_create(
+            type_name=DEPOSIT_TYPE_FINAL
+        )
+
+        deposit_type_full, _ = DepositType.objects.get_or_create(
+            type_name=DEPOSIT_TYPE_FULL
+        )
+
+        deposit_types = {
+            "deposit": deposit_type_deposit,
+            "final": deposit_type_final,
+            "full": deposit_type_full,
+        }
 
         for row in rows:
-            contract_number = str(row.get(SHEET_COLUMNS["contract_number"], "")).strip()
+            contract_number = str(
+                row.get(
+                    SHEET_COLUMNS["contract_number"],
+                    "",
+                )
+            ).strip()
 
             if not contract_number:
                 skipped += 1
@@ -210,34 +284,49 @@ class Command(BaseCommand):
 
             try:
                 with transaction.atomic():
-                    self._sync_row(row, contract_number)
+                    row_updated = self._sync_row(
+                        row,
+                        contract_number,
+                        deposit_types,
+                    )
+
                 synced += 1
+
+                if row_updated:
+                    updated += 1
 
             except Exception as exc:
                 skipped += 1
+
                 msg = f"Skipped row '{contract_number}': {exc}"
+
                 self.stderr.write(self.style.WARNING(msg))
+
                 self._warnings.append(msg)
 
-        deleted_count, _ = (
-            Order.objects
-            .exclude(contract_number__in=seen_contracts)
-            .delete()
-        )
+        deleted_count, _ = Order.objects.exclude(
+            contract_number__in=seen_contracts
+        ).delete()
 
         if duplicated_contracts:
             msg = (
-                f"Found duplicate contract numbers, skipped syncing "
-                f"them (existing data left untouched): "
+                "Found duplicate contract numbers, skipped syncing "
+                "them (existing data left untouched): "
                 f"{', '.join(sorted(duplicated_contracts))}"
             )
+
             self.stderr.write(self.style.WARNING(msg))
+
             self._warnings.append(msg)
 
         summary = (
-            f"Sync complete. {synced} rows synced, {skipped} skipped, "
-            f"{duplicate_count} duplicates, {deleted_count} deleted."
+            f"Sync complete. {synced} rows synced, "
+            f"{skipped} skipped, "
+            f"{duplicate_count} duplicates, "
+            f"{deleted_count} deleted, "
+            f"{updated} rows changed."
         )
+
         self.stdout.write(self.style.SUCCESS(summary))
 
         result = {
@@ -247,225 +336,365 @@ class Command(BaseCommand):
             "skipped": skipped,
             "duplicates": duplicate_count,
             "deleted": deleted_count,
+            "updated": updated,
             "warnings": self._warnings,
         }
+
         return json.dumps(result)
 
-    def _sync_row(self, row, contract_number):
+    def _sync_row(
+        self,
+        row,
+        contract_number,
+        deposit_types,
+    ):
         c = SHEET_COLUMNS
 
+        row_changed = False
+
+        # ---------------------------------------------------------
+        # Client
+        # ---------------------------------------------------------
+
         client_name = str(row.get(c["client"], "")).strip()
+
         if not client_name:
             raise ValueError("missing client name")
+
         client_obj, _ = Client.objects.get_or_create(client_name=client_name)
 
-        order, _ = Order.objects.update_or_create(
-            contract_number=contract_number,
-            defaults={
-                "client": client_obj,
-                "country": str(row.get(c["country"], "")).strip(),
-            },
+        # ---------------------------------------------------------
+        # Order
+        # ---------------------------------------------------------
+
+        order_defaults = {
+            "client": client_obj,
+            "country": str(row.get(c["country"], "")).strip(),
+        }
+
+        order, _, changed = get_or_create_then_update(
+            Order,
+            {"contract_number": contract_number},
+            order_defaults,
         )
 
-        # --- Client side ---
-        raw_total = row.get(c["client_total_amount"])
-        raw_deposit = row.get(c["client_deposit_amount"])
-        raw_final = row.get(c["client_final_amount"])
-        
-        client_total = parse_decimal(raw_total)
-        client_deposit_amount = parse_decimal(raw_deposit)
-        client_final_amount = parse_decimal(raw_final)
-        
+        row_changed |= changed
+
+        # ---------------------------------------------------------
+        # Client order
+        # ---------------------------------------------------------
+
+        client_total = parse_decimal(row.get(c["client_total_amount"]))
+
+        client_deposit_amount = parse_decimal(row.get(c["client_deposit_amount"]))
+
+        client_final_amount = parse_decimal(row.get(c["client_final_amount"]))
+
         deposit = client_deposit_amount or Decimal("0")
         final = client_final_amount or Decimal("0")
         total = client_total or Decimal("0")
-        
-        payment_type = str(
-            row.get(c["client_payment_type"], "")
-            ).strip()
-        
-        client_order, _ = ClientOrder.objects.update_or_create(
-            order=order,
-            defaults={
-                "client": client_obj,
-                "client_representative": str(row.get(c["client_representative"], "")).strip(),
-                "client_contact": str(row.get(c["client_contact"], "")).strip(),
-                "total_amount": client_total,
-                "payment_type": payment_type,
-            },
+
+        payment_type = str(row.get(c["client_payment_type"], "")).strip()
+
+        client_order_defaults = {
+            "client": client_obj,
+            "client_representative": str(
+                row.get(c["client_representative"], "")
+            ).strip(),
+            "client_contact": str(row.get(c["client_contact"], "")).strip(),
+            "total_amount": client_total,
+            "payment_type": payment_type,
+        }
+
+        client_order, _, changed = get_or_create_then_update(
+            ClientOrder,
+            {"order": order},
+            client_order_defaults,
         )
-        deposit_type_deposit, _ = DepositType.objects.get_or_create(
-            type_name=DEPOSIT_TYPE_DEPOSIT
-        )
-        deposit_type_final, _ = DepositType.objects.get_or_create(
-            type_name=DEPOSIT_TYPE_FINAL
-        )
-        deposit_type_full, _ = DepositType.objects.get_or_create(
-            type_name=DEPOSIT_TYPE_FULL
-        )
-        
+
+        row_changed |= changed
+
+        deposit_type_deposit = deposit_types["deposit"]
+        deposit_type_final = deposit_types["final"]
+        deposit_type_full = deposit_types["full"]
+
         paid_amount = deposit + final
 
         def _cell_is_blank(raw_value):
-            text = str(raw_value).replace("€", "").strip() if raw_value is not None else ""
+            text = (
+                str(raw_value).replace("€", "").strip() if raw_value is not None else ""
+            )
+
             return text in ("", "-", "—")
 
         has_client_amount = not (
-            _cell_is_blank(raw_total)
-            and _cell_is_blank(raw_deposit)
-            and _cell_is_blank(raw_final)
+            _cell_is_blank(row.get(c["client_total_amount"]))
+            and _cell_is_blank(row.get(c["client_deposit_amount"]))
+            and _cell_is_blank(row.get(c["client_final_amount"]))
         )
-        
+
         if not has_client_amount:
-            DepositClient.objects.filter(client_order=client_order).delete()
-            
+            deleted_count, _ = DepositClient.objects.filter(
+                client_order=client_order
+            ).delete()
+
+            if deleted_count:
+                row_changed = True
+
         elif client_total is not None and client_total < 0:
             msg = (
-                    f"Negative client total amount for contract {contract_number}: {client_total}."
-                    f" Treating as no client deposit info."
-                )
+                f"Negative client total amount for contract "
+                f"{contract_number}: {client_total}. "
+                "Treating as no client deposit info."
+            )
+
             self.stderr.write(self.style.WARNING(msg))
+
             self._warnings.append(msg)
+
+            deleted_count, _ = DepositClient.objects.filter(
+                client_order=client_order,
+                deposit_type__in=[
+                    deposit_type_deposit,
+                    deposit_type_final,
+                ],
+            ).delete()
+
+            if deleted_count:
+                row_changed = True
+
             client_total = None
             client_deposit_amount = None
             client_final_amount = None
-            
-            DepositClient.objects.filter(
-                client_order=client_order,
-                deposit_type__in=[deposit_type_deposit, deposit_type_final]
-            ).delete()
-            
+
         elif payment_type == "Visa suma":
-            DepositClient.objects.update_or_create(
-                client_order=client_order,
-                deposit_type=deposit_type_full,
-                defaults={
+            _, _, changed = get_or_create_then_update(
+                DepositClient,
+                {
+                    "client_order": client_order,
+                    "deposit_type": deposit_type_full,
+                },
+                {
                     "amount": total,
                     "payment_due_by": None,
-                    "is_paid": is_paid(paid_amount, total)
+                    "is_paid": is_paid(
+                        paid_amount,
+                        total,
+                    ),
                 },
             )
-            
-            DepositClient.objects.filter(
+
+            row_changed |= changed
+
+            deleted_count, _ = DepositClient.objects.filter(
                 client_order=client_order,
-                deposit_type__in=[deposit_type_deposit, deposit_type_final]
+                deposit_type__in=[
+                    deposit_type_deposit,
+                    deposit_type_final,
+                ],
             ).delete()
-            
+
+            if deleted_count:
+                row_changed = True
+
         elif payment_type == "Po pristatymo":
-            
-            DepositClient.objects.update_or_create(
-                client_order=client_order,
-                deposit_type=deposit_type_full,
-                defaults={
+            _, _, changed = get_or_create_then_update(
+                DepositClient,
+                {
+                    "client_order": client_order,
+                    "deposit_type": deposit_type_full,
+                },
+                {
                     "amount": total,
                     "payment_due_by": parse_date(row.get(c["client_final_due_date"])),
-                    "is_paid": is_paid(paid_amount, total)
+                    "is_paid": is_paid(
+                        paid_amount,
+                        total,
+                    ),
                 },
             )
-            
-            DepositClient.objects.filter(
+
+            row_changed |= changed
+
+            deleted_count, _ = DepositClient.objects.filter(
                 client_order=client_order,
-                deposit_type__in=[deposit_type_deposit, deposit_type_final],
+                deposit_type__in=[
+                    deposit_type_deposit,
+                    deposit_type_final,
+                ],
             ).delete()
-            
+
+            if deleted_count:
+                row_changed = True
+
         elif payment_type == "Avansas":
-            
-            depsosit_covers_full_total = (total > 0 and deposit >= total)
-            
-            DepositClient.objects.update_or_create(
-                client_order=client_order,
-                deposit_type=deposit_type_deposit,
-                defaults={
+            deposit_covers_full_total = total > 0 and deposit >= total
+
+            _, _, changed = get_or_create_then_update(
+                DepositClient,
+                {
+                    "client_order": client_order,
+                    "deposit_type": deposit_type_deposit,
+                },
+                {
                     "amount": deposit,
                     "payment_due_by": None,
                     "is_paid": deposit > 0,
                 },
             )
-            
-            DepositClient.objects.update_or_create(
-                client_order=client_order,
-                deposit_type=deposit_type_final,
-                defaults={
+
+            row_changed |= changed
+
+            _, _, changed = get_or_create_then_update(
+                DepositClient,
+                {
+                    "client_order": client_order,
+                    "deposit_type": deposit_type_final,
+                },
+                {
                     "amount": final,
                     "payment_due_by": parse_date(row.get(c["client_final_due_date"])),
-                    "is_paid": final > 0 or depsosit_covers_full_total,
+                    "is_paid": (final > 0 or deposit_covers_full_total),
                 },
             )
-            
-            DepositClient.objects.filter(
+
+            row_changed |= changed
+
+            deleted_count, _ = DepositClient.objects.filter(
                 client_order=client_order,
-                deposit_type=deposit_type_full
+                deposit_type=deposit_type_full,
             ).delete()
-            
+
+            if deleted_count:
+                row_changed = True
+
         elif payment_type == "":
             msg = (
-                    f"Contract {contract_number} has client amounts filled in "
-                    f"but no MOKĖJIMO TIPAS selected — clearing existing client "
-                    f"deposit tracking for this order until a payment type is set."
-                )
+                f"Contract {contract_number} has client amounts "
+                "filled in but no MOKĖJIMO TIPAS selected — "
+                "clearing existing client deposit tracking for "
+                "this order until a payment type is set."
+            )
+
             self.stderr.write(self.style.WARNING(msg))
+
             self._warnings.append(msg)
-            DepositClient.objects.filter(client_order=client_order).delete()
-            
+
+            deleted_count, _ = DepositClient.objects.filter(
+                client_order=client_order
+            ).delete()
+
+            if deleted_count:
+                row_changed = True
+
         else:
             raise ValueError(
                 f"Unknown payment type '{payment_type}' "
                 f"for contract {contract_number}"
             )
-            
-        # --- Factory side ---
+
+        # ---------------------------------------------------------
+        # Factory order
+        # ---------------------------------------------------------
+
         factory_order_amount = parse_decimal(row.get(c["factory_order_amount"]))
+
         factory_deposit_amount = parse_decimal(row.get(c["factory_deposit_amount"]))
+
         factory_final_amount = parse_decimal(row.get(c["factory_final_amount"]))
-        
+
         raw_packaging_cost = row.get(c["factory_packaging_cost"])
+
         factory_packaging_cost = parse_decimal(raw_packaging_cost)
 
-        factory_order, _ = FactoryOrder.objects.update_or_create(
-            order=order,
-            defaults={
-                "factory_order_number": str(row.get(c["factory_order_number"], "")).strip(),
-                "order_amount": factory_order_amount,
-                "production_start_date": parse_date(row.get(c["production_start_date"])),
-                "production_end_date": parse_date(row.get(c["production_end_date"])),
-            },
+        factory_order_defaults = {
+            "factory_order_number": str(row.get(c["factory_order_number"], "")).strip(),
+            "order_amount": factory_order_amount,
+            "production_start_date": parse_date(row.get(c["production_start_date"])),
+            "production_end_date": parse_date(row.get(c["production_end_date"])),
+        }
+
+        factory_order, _, changed = get_or_create_then_update(
+            FactoryOrder,
+            {"order": order},
+            factory_order_defaults,
         )
-        
+
+        row_changed |= changed
+
         if _cell_is_blank(raw_packaging_cost):
-            factory_paid_amount = (factory_deposit_amount or Decimal("0")) + (factory_final_amount or Decimal("0"))
+            factory_paid_amount = (factory_deposit_amount or Decimal("0")) + (
+                factory_final_amount or Decimal("0")
+            )
         else:
             factory_paid_amount = (
                 (factory_deposit_amount or Decimal("0"))
                 + (factory_final_amount or Decimal("0"))
                 + (factory_packaging_cost or Decimal("0"))
-            )  
-            
-        factory_fully_paid = is_paid(factory_paid_amount, factory_order_amount)
-        
-        DepositFactory.objects.update_or_create(
-            factory_order=factory_order,
-            deposit_type=deposit_type_deposit,
-            defaults={
-                "amount": factory_deposit_amount,
-                "is_paid": factory_fully_paid or is_paid(factory_deposit_amount, factory_order_amount),
-            },
+            )
+
+        factory_fully_paid = is_paid(
+            factory_paid_amount,
+            factory_order_amount,
         )
-        DepositFactory.objects.update_or_create(
-            factory_order=factory_order,
-            deposit_type=deposit_type_final,
-            defaults={
-                "amount": factory_final_amount,
-                "is_paid": factory_fully_paid or is_paid(factory_final_amount, factory_order_amount),
+
+        _, _, changed = get_or_create_then_update(
+            DepositFactory,
+            {
+                "factory_order": factory_order,
+                "deposit_type": deposit_type_deposit,
+            },
+            {
+                "amount": factory_deposit_amount,
+                "is_paid": (
+                    factory_fully_paid
+                    or is_paid(
+                        factory_deposit_amount,
+                        factory_order_amount,
+                    )
+                ),
             },
         )
 
-        # --- Transport ---
-        Transport.objects.update_or_create(
-            order=order,
-            defaults={
-                "courier": str(row.get(c["courier"], "")).strip(),
-                "delivery_address": str(row.get(c["client_shipment_address"], "")).strip(),
-                "delivery_price": parse_decimal(row.get(c["shipment_cost"])),
-                "delivery_date": parse_date(row.get(c["shipment_delivery_date"])),
+        row_changed |= changed
+
+        _, _, changed = get_or_create_then_update(
+            DepositFactory,
+            {
+                "factory_order": factory_order,
+                "deposit_type": deposit_type_final,
+            },
+            {
+                "amount": factory_final_amount,
+                "is_paid": (
+                    factory_fully_paid
+                    or is_paid(
+                        factory_final_amount,
+                        factory_order_amount,
+                    )
+                ),
             },
         )
+
+        row_changed |= changed
+
+        # ---------------------------------------------------------
+        # Transport
+        # ---------------------------------------------------------
+
+        transport_defaults = {
+            "courier": str(row.get(c["courier"], "")).strip(),
+            "delivery_address": str(row.get(c["client_shipment_address"], "")).strip(),
+            "delivery_price": parse_decimal(row.get(c["shipment_cost"])),
+            "delivery_date": parse_date(row.get(c["shipment_delivery_date"])),
+        }
+
+        _, _, changed = get_or_create_then_update(
+            Transport,
+            {"order": order},
+            transport_defaults,
+        )
+
+        row_changed |= changed
+
+        return row_changed
