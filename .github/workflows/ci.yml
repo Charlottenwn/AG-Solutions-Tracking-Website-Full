@@ -79,7 +79,7 @@ jobs:
           Set-Content -Path secrets/ntfy_password_mz.txt -Value "ci-fake-password_mz" -Encoding ascii -NoNewline
           Set-Content -Path secrets/ntfy_password_vp.txt -Value "ci-fake-password_vp" -Encoding ascii -NoNewline
           Set-Content -Path secrets/.htpasswd -Value "" -Encoding ascii -NoNewline
-          Get-Content -Path secrets/keepalive_phone_number.txt -Value "ci-fake-phone" -Encoding ascii -NoNewline
+          Set-Content -Path secrets/keepalive_phone_number.txt -Value "ci-fake-phone" -Encoding ascii -NoNewline
 
       - name: Verify dummy secrets look correct
         run: |
