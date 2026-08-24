@@ -5,7 +5,7 @@ import logging
 import requests
 from celery import shared_task
 from django.core.management import call_command
-from .services import get_due_reminders, send_keepalive_sms, check_seven_balance
+from .services import get_due_reminders, check_seven_balance
 from main.models import NtfySentReminder
 from django.conf import settings
 
@@ -70,15 +70,17 @@ def check_reminders_task(self):
 
     return {"pushed": pushed, "total_due": len(due)}
 
-@shared_task(bind=True, max_retries=3, default_retry_delay=3600)
-def seven_sms_keepalive_task(self):
-    try:
-        message = send_keepalive_sms(settings.KEEPALIVE_PHONE_NUMBER) 
-        logger.info("Seven.io keepalive SMS sent successfully.")
-        return {"status": "sent", "message": message}
-    except Exception as exc:
-        logger.exception("Seven.io keepalive SMS failed")
-        raise self.retry(exc=exc)
+# COMMENTED OUT SINCE 2026-08-24 (Seven API support confirmed that inactivity doesn't change anything-
+# keeping code as is for potential future use. See email for more details.
+#@shared_task(bind=True, max_retries=3, default_retry_delay=3600)
+#def seven_sms_keepalive_task(self):
+    #try:
+        #message = send_keepalive_sms(settings.KEEPALIVE_PHONE_NUMBER) 
+        #logger.info("Seven.io keepalive SMS sent successfully.")
+        #return {"status": "sent", "message": message}
+    #except Exception as exc:
+        #logger.exception("Seven.io keepalive SMS failed")
+        #raise self.retry(exc=exc)
 
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=3600)

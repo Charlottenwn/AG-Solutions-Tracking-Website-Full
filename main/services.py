@@ -54,11 +54,12 @@ def _send_sms(phone_number, body):
     if result != "100":
         raise SmsDeliveryError(f"Seven API reported failure: {result}")
 
-
-def send_keepalive_sms(phone_number):
-    message = "AG Solutions — automated keepalive ping, no action needed."
-    _send_sms(phone_number, message)
-    return message
+# COMMENTED OUT SINCE 2026-08-24 (Seven API support confirmed that inactivity doesn't change anything-
+# keeping code as is for potential future use. See email for more details.
+#def send_keepalive_sms(phone_number):
+    #message = "AG Solutions — automated keepalive ping, no action needed."
+    #_send_sms(phone_number, message)
+    #return message
 
 
 def check_seven_balance():
