@@ -45,7 +45,7 @@ NTFY_BASE_URL = os.environ.get("NTFY_BASE_URL", "http://ntfy:80")
 NTFY_USER = read_secret("/app/secrets/ntfy_user.txt")
 NTFY_PASSWORD = read_secret("/app/secrets/ntfy_password.txt")
 NTFY_TOPIC = os.environ.get("NTFY_TOPIC","ag-solutions-reminders")
-KEEPALIVE_PHONE_NUMBER = read_secret("/app/secrets/keepalive_phone_number.txt")
+#KEEPALIVE_PHONE_NUMBER = read_secret("/app/secrets/keepalive_phone_number.txt")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "0") == "1"
