@@ -1,4 +1,0 @@
-base-url: "http://localhost"
-listen-http: ":80"
-auth-file: "/var/lib/ntfy/auth.db"
-auth-default-access: "deny-all"

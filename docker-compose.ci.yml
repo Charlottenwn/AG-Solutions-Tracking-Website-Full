@@ -1,4 +1,0 @@
-services:
-  db:
-    image: postgres:18
-    ports: []
