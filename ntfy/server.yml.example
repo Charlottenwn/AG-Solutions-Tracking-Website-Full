@@ -1,0 +1,17 @@
+base-url: "URL_HERE"
+listen-http: "PORT_HERE"
+listen-https: "PORT_HERE"
+cert-file: "TAILSCALE_CERT_HERE"
+key-file: "TAILSCALE_KEY_HERE"
+auth-file: "/var/lib/ntfy/auth.db"
+auth-default-access: "deny-all"
+
+# DO NOT CHANGE THE WEB-PUSH VAPID KEYS!
+# The private key signs push requests to prove this server's identity to the
+# push service. Existing browser subscriptions are tied to the public key
+# used when they subscribed — rotating the pair invalidates all of them
+# until each browser re-subscribes.
+web-push-public-key: "VAPID_PUB_KEY_HERE"
+web-push-private-key: "VAPID_PRIV_KEY_HERE"
+web-push-file: "/var/ntfy/webpush.db"
+web-push-email-address: "PERSONAL_EMAIL_HERE"
