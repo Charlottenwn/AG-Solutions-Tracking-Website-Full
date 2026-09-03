@@ -58,3 +58,4 @@ volumes:
   static_volume:
   runtime_secrets:
   ntfy_data:
+  ntfy_config:

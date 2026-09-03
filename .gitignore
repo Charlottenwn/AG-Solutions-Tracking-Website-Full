@@ -31,3 +31,11 @@ pytest.ini
 .coveragerc
 .pytest_cache
 *.VSCodeCounter/
+
+# Production config
+ntfy/server.yml
+nginx.prod.conf
+
+# ENV-specific Docker-compose files
+docker-compose.dev.yml
+docker-compose.ci.yml

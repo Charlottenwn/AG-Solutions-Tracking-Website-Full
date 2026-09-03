@@ -66,10 +66,12 @@ services:
   ntfy:
     volumes:
       - ntfy_data:/var/lib/ntfy
-      - ./ntfy/server.yml:/etc/ntfy/server.yml:ro
+      - ./ntfy/server.yml:/etc/ntfy/server.yml.template:ro
+      - ntfy_config:/etc/ntfy
       - runtime_secrets:/run/secrets:ro
       - ./certs:/etc/ntfy/certs:ro
-      - /var/lib/ntfy:/var/lib/ntfy
     env_file:
       - .env-docker/.env.ntfy
+    entrypoint: >
+      sh -c "sed 's|__VAPID_PRIVATE_KEY__|'$$(cat /run/secrets/VAPID_priv_key.txt)'|' /etc/ntfy/server.yml.template > /etc/ntfy/server.yml && exec ntfy serve --config /etc/ntfy/server.yml"
     restart: unless-stopped
