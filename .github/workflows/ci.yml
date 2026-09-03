@@ -79,6 +79,7 @@ jobs:
           Set-Content -Path secrets/ntfy_password_mz.txt -Value "ci-fake-password_mz" -Encoding ascii -NoNewline
           Set-Content -Path secrets/ntfy_password_vp.txt -Value "ci-fake-password_vp" -Encoding ascii -NoNewline
           Set-Content -Path secrets/.htpasswd -Value "" -Encoding ascii -NoNewline
+          Set-Content -Path secrets/VAPID_priv_key.txt -Value "ci-fake-vapid-priv" -Encoding ascii -NoNewline
          # Set-Content -Path secrets/keepalive_phone_number.txt -Value "ci-fake-phone" -Encoding ascii -NoNewline
         # COMMENTED OUT SINCE 2026-08-24 (Seven API support confirmed that inactivity doesn't change anything-
         # keeping code as is for potential future use. See email for more details.
@@ -96,6 +97,7 @@ jobs:
           Get-Content secrets/ntfy_password_mz.txt
           Get-Content secrets/ntfy_password_vp.txt
           Get-Content secrets/.htpasswd
+          Get-Content secrets/VAPID_priv_key.txt
          # Get-Content secrets/keepalive_phone_number.txt
           
       - name: Create dummy env files for CI (never touches real .env.dev/.env.db)
