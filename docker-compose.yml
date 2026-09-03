@@ -12,6 +12,11 @@ services:
     command: >
       sh -c "python manage.py collectstatic --noinput --clear &&
              gunicorn core.wsgi:application --bind 0.0.0.0:8000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -24,10 +29,20 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   celery_worker:
     build: .
     command: celery -A core worker --loglevel=info --concurrency=1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -35,6 +50,11 @@ services:
   celery_beat:
     build: .
     command: celery -A core beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -43,6 +63,11 @@ services:
     image: nginx:latest
     ports:
       - "80:80"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     depends_on:
       - web
 
@@ -52,6 +77,11 @@ services:
     ports:
       - "8080:80"
       - "8443:8443"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   postgres_data:
