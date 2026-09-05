@@ -102,9 +102,14 @@ class ParseDateTests(SimpleTestCase):
         result = parse_date("09.02.2026")
         self.assertEqual(result.isoformat(), "2026-02-09")
 
-    def test_slash_separated_mdy_format(self):
+    def test_slash_separated_format_prefers_dmy_on_ambiguous_input(self):
         result = parse_date("02/09/2026")
-        self.assertEqual(result.isoformat(), "2026-02-09")
+        self.assertEqual(result.isoformat(), "2026-09-02")
+
+    def test_slash_separated_format_falls_back_to_mdy_when_unambiguous(self):
+        # 25 can't be a month, so %d/%m/%Y fails and %m/%d/%Y is used.
+        result = parse_date("02/25/2026")
+        self.assertEqual(result.isoformat(), "2026-02-25")
 
     def test_date_range_uses_start_date(self):
         result = parse_date("19-21/08/2026")
@@ -214,24 +219,22 @@ class LoadSheetIdTests(SimpleTestCase):
 
 
 class GetSheetRowsTests(SimpleTestCase):
-    @patch("main.management.commands.sync_sheet.gspread")
-    @patch("main.management.commands.sync_sheet.service_account")
+    @patch("gspread.authorize")
+    @patch("google.oauth2.service_account.Credentials.from_service_account_file")
     @patch("main.management.commands.sync_sheet.load_sheet_id")
     def test_get_sheet_rows_returns_records(
         self,
         mock_load_sheet_id,
-        mock_service_account,
-        mock_gspread,
+        mock_from_service_account_file,
+        mock_authorize,
     ):
         mock_load_sheet_id.return_value = "sheet-id"
 
         mock_credentials = MagicMock()
-        mock_service_account.Credentials.from_service_account_file.return_value = (
-            mock_credentials
-        )
+        mock_from_service_account_file.return_value = mock_credentials
 
         mock_client = MagicMock()
-        mock_gspread.authorize.return_value = mock_client
+        mock_authorize.return_value = mock_client
 
         mock_sheet = MagicMock()
         mock_worksheet = MagicMock()
@@ -252,8 +255,8 @@ class GetSheetRowsTests(SimpleTestCase):
         self.assertEqual(result, [{"SUTARTIES NR.": "A-001"}])
 
         mock_load_sheet_id.assert_called_once_with("sheet_id.json")
-        mock_service_account.Credentials.from_service_account_file.assert_called_once()
-        mock_gspread.authorize.assert_called_once_with(mock_credentials)
+        mock_from_service_account_file.assert_called_once()
+        mock_authorize.assert_called_once_with(mock_credentials)
         mock_client.open_by_key.assert_called_once_with("sheet-id")
         mock_sheet.worksheet.assert_called_once_with("Sheet1")
         mock_worksheet.get_all_records.assert_called_once_with(head=6)
@@ -262,6 +265,20 @@ class GetSheetRowsTests(SimpleTestCase):
 class SyncSheetCommandTests(TestCase):
     def setUp(self):
         self.command = Command()
+
+        # _sync_row() now requires a deposit_types dict (built once per
+        # handle() run in the real command, to avoid repeated
+        # get_or_create() calls per row). Build the same shape here so
+        # every direct _sync_row() call below matches the real signature.
+        self.deposit_types = {
+            "deposit": DepositType.objects.create(type_name=DEPOSIT_TYPE_DEPOSIT),
+            "final": DepositType.objects.create(type_name=DEPOSIT_TYPE_FINAL),
+            "full": DepositType.objects.create(type_name=DEPOSIT_TYPE_FULL),
+        }
+
+    def sync_row(self, row, contract_number):
+        """Shorthand so call sites don't repeat self.deposit_types everywhere."""
+        return self.command._sync_row(row, contract_number, self.deposit_types)
 
     def make_row(
         self,
@@ -305,7 +322,7 @@ class SyncSheetCommandTests(TestCase):
     def test_sync_row_creates_all_related_objects(self):
         row = self.make_row()
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         client = Client.objects.get(client_name="Test Client")
         order = Order.objects.get(contract_number="CON-001")
@@ -340,7 +357,7 @@ class SyncSheetCommandTests(TestCase):
         row = self.make_row(client_name="")
 
         with self.assertRaisesMessage(ValueError, "missing client name"):
-            self.command._sync_row(row, "CON-001")
+            self.sync_row(row, "CON-001")
 
     def test_avansas_creates_deposit_and_final_tracking(self):
         row = self.make_row(
@@ -350,7 +367,7 @@ class SyncSheetCommandTests(TestCase):
             client_final="500",
         )
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         client_order = ClientOrder.objects.get(order__contract_number="CON-001")
 
@@ -380,7 +397,7 @@ class SyncSheetCommandTests(TestCase):
             client_final="0",
         )
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         client_order = ClientOrder.objects.get(order__contract_number="CON-001")
 
@@ -401,7 +418,7 @@ class SyncSheetCommandTests(TestCase):
             client_final="0",
         )
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         client_order = ClientOrder.objects.get(order__contract_number="CON-001")
 
@@ -437,7 +454,7 @@ class SyncSheetCommandTests(TestCase):
             client_final="1000",
         )
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         client_order = ClientOrder.objects.get(order__contract_number="CON-001")
 
@@ -464,7 +481,7 @@ class SyncSheetCommandTests(TestCase):
 
         self.command._warnings = []
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         client_order = ClientOrder.objects.get(order__contract_number="CON-001")
 
@@ -487,7 +504,7 @@ class SyncSheetCommandTests(TestCase):
             ValueError,
             "Unknown payment type",
         ):
-            self.command._sync_row(row, "CON-001")
+            self.sync_row(row, "CON-001")
 
     def test_blank_client_amounts_clear_existing_deposits(self):
         row = self.make_row(
@@ -496,7 +513,7 @@ class SyncSheetCommandTests(TestCase):
             client_final="-",
         )
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         client_order = ClientOrder.objects.get(order__contract_number="CON-001")
 
@@ -513,7 +530,7 @@ class SyncSheetCommandTests(TestCase):
 
         self.command._warnings = []
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         client_order = ClientOrder.objects.get(order__contract_number="CON-001")
 
@@ -543,7 +560,7 @@ class SyncSheetCommandTests(TestCase):
             client_final="0",
         )
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         client_order = ClientOrder.objects.get(order__contract_number="CON-001")
 
@@ -563,7 +580,7 @@ class SyncSheetCommandTests(TestCase):
             factory_final="400",
         )
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         factory_order = FactoryOrder.objects.get(order__contract_number="CON-001")
 
@@ -590,7 +607,7 @@ class SyncSheetCommandTests(TestCase):
             packaging_cost="200",
         )
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         factory_order = FactoryOrder.objects.get(order__contract_number="CON-001")
 
@@ -617,7 +634,7 @@ class SyncSheetCommandTests(TestCase):
             packaging_cost="-",
         )
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         factory_order = FactoryOrder.objects.get(order__contract_number="CON-001")
 
@@ -839,12 +856,12 @@ class SyncSheetCommandTests(TestCase):
     def test_sync_row_updates_existing_order(self):
         row = self.make_row()
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         row[SHEET_COLUMNS["country"]] = "Germany"
         row[SHEET_COLUMNS["client_representative"]] = "Updated Person"
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         self.assertEqual(
             Order.objects.get(contract_number="CON-001").country,
@@ -865,8 +882,8 @@ class SyncSheetCommandTests(TestCase):
 
         row = self.make_row()
 
-        self.command._sync_row(row, "CON-001")
-        self.command._sync_row(row, "CON-002")
+        self.sync_row(row, "CON-001")
+        self.sync_row(row, "CON-002")
 
         self.assertEqual(
             Client.objects.filter(client_name="Test Client").count(),
@@ -881,12 +898,12 @@ class SyncSheetCommandTests(TestCase):
             client_final="600",
         )
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         row[SHEET_COLUMNS["client_deposit_amount"]] = "500"
         row[SHEET_COLUMNS["client_final_amount"]] = "500"
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         client_order = ClientOrder.objects.get(order__contract_number="CON-001")
 
@@ -913,14 +930,14 @@ class SyncSheetCommandTests(TestCase):
     def test_transport_values_are_updated(self):
         row = self.make_row()
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         row[SHEET_COLUMNS["courier"]] = "NTEX"
         row[SHEET_COLUMNS["client_shipment_address"]] = "Kaunas"
         row[SHEET_COLUMNS["shipment_cost"]] = "250"
         row[SHEET_COLUMNS["shipment_delivery_date"]] = "2026-03-01"
 
-        self.command._sync_row(row, "CON-001")
+        self.sync_row(row, "CON-001")
 
         transport = Transport.objects.get(order__contract_number="CON-001")
 
