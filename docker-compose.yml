@@ -12,6 +12,11 @@ services:
     command: >
       sh -c "python manage.py collectstatic --noinput --clear &&
              gunicorn core.wsgi:application --bind 0.0.0.0:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 8000), timeout=3)"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     logging:
       driver: "json-file"
       options:
@@ -20,7 +25,6 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-
 
   db:
     image: postgres:18
@@ -69,7 +73,8 @@ services:
         max-size: "10m"
         max-file: "3"
     depends_on:
-      - web
+      web:
+        condition: service_healthy
 
   ntfy:
     image: binwiederhier/ntfy:latest
