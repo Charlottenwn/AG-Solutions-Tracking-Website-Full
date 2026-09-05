@@ -12,29 +12,36 @@ class Status_recovery(models.TextChoices):
     FAILED_NO_PHONE = "failed_no_phone", "Failed — no phone on file"
     FAILED_INVALID_CODE = "failed_invalid_code", "Failed — invalid/expired code"
     FAILED_SMS_ERROR = "failed_sms_error", "Failed — SMS send error"
-    
+
 class Status(models.TextChoices):
     PENDING = "pending", "Pending"
     IN_PROGRESS = "in_progress", "In Progress"
     COMPLETED = "completed", "Completed"
-    
+
 class Status_recovery_session(models.TextChoices):
     ACTIVE = "active", "Active"
     SUCCESS = "success", "Success"
     FAILED = "failed", "Failed"
-    
+
 class PaymentType(models.TextChoices):
     FULL = "full", "Visa suma"
     DEPOSIT = "deposit", "Avansas"
     AFTER_DELIVERY = "after_delivery", "Po pristatymo"
-    
+
 class Client(models.Model):
     client_name = models.CharField(max_length=100)
     client_contact_number = models.CharField(max_length=20, blank=True)
 
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=["client_name"]
+            ),
+        ]
+
     def __str__(self):
         return self.client_name
-    
+
 class Order(models.Model):
     client = models.ForeignKey(Client, on_delete=models.PROTECT)
     contract_number = models.CharField(max_length=50, unique=True)
@@ -42,9 +49,14 @@ class Order(models.Model):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["-created_at"]),
+        ]
+
     def __str__(self):
         return self.contract_number
-    
+
 class Transport(models.Model):
     order = models.OneToOneField(Order, on_delete=models.CASCADE)
     courier = models.CharField(max_length=100, blank=True)
@@ -57,6 +69,13 @@ class Transport(models.Model):
     class Meta:
         verbose_name = 'Transport'
         verbose_name_plural = 'Transports'
+        indexes = [
+            models.Index(
+                fields=["reminder_date"],
+                name="transport_unsent_reminder_idx",
+                condition=models.Q(is_reminder_sent=False),
+            ),
+        ]
 
     def save(self, *args, **kwargs):
         if self.delivery_date:
@@ -71,9 +90,8 @@ class Transport(models.Model):
 
     def __str__(self):
         return f"Transport for {self.order}"
-    
-class FactoryOrder(models.Model):
 
+class FactoryOrder(models.Model):
     order=models.ForeignKey(Order, on_delete=models.CASCADE)
     factory_name=models.CharField(max_length=100, blank=True)
     factory_order_number = models.CharField(max_length=100, blank=True)
@@ -89,6 +107,20 @@ class FactoryOrder(models.Model):
     package_clarification_reminder_date = models.DateField(null=True, blank=True, editable=False)
     is_package_clarification_reminder_sent = models.BooleanField(default=False)
     
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=["furniture_reminder_date"],
+                name="fo_furniture_unsent_idx",
+                condition=models.Q(is_furniture_reminder_sent=False),
+            ),
+            models.Index(
+                fields=["package_clarification_reminder_date"],
+                name="fo_package_unsent_idx",
+                condition=models.Q(is_package_clarification_reminder_sent=False),
+            ),
+        ]
+        
     def save(self, *args, **kwargs):
         from datetime import timedelta
         if self.production_start_date:
@@ -105,7 +137,7 @@ class FactoryOrder(models.Model):
 
     def __str__(self):
         return f"Factory Order for {self.order}"
-    
+
 class ClientOrder(models.Model):
     
     order=models.ForeignKey(Order, on_delete=models.CASCADE)
@@ -119,14 +151,14 @@ class ClientOrder(models.Model):
     payment_type = models.CharField(max_length=50, choices=PaymentType.choices, blank=True, default="")
     def __str__(self):
         return f"Client Order for {self.order}"
-    
+
 class DepositType(models.Model):
     type_name = models.CharField(max_length=100, unique=True)
 
 
     def __str__(self):
         return self.type_name
-    
+
 class DepositFactory(models.Model):
     factory_order = models.ForeignKey(FactoryOrder, on_delete=models.CASCADE)
     deposit_type = models.ForeignKey(DepositType, on_delete=models.PROTECT)
@@ -139,6 +171,13 @@ class DepositFactory(models.Model):
     class Meta:
         verbose_name = "Factory deposit"
         verbose_name_plural = "Factory deposits"
+        indexes = [
+            models.Index(
+                fields=["reminder_date"],
+                name="depositfactory_unsent_idx",
+                condition=models.Q(is_reminder_sent=False),
+            ),
+        ]
 
     def save(self, *args, **kwargs):
         if self.payment_due_by:
@@ -153,8 +192,8 @@ class DepositFactory(models.Model):
 
     def __str__(self):
         return f"Factory deposit for {self.factory_order} - {self.deposit_type}"
-    
-    
+
+
 class DepositClient(models.Model):
     client_order = models.ForeignKey(ClientOrder, on_delete=models.CASCADE)
     deposit_type = models.ForeignKey(DepositType, on_delete=models.PROTECT)
@@ -167,6 +206,13 @@ class DepositClient(models.Model):
     class Meta:
         verbose_name = "Client deposit"
         verbose_name_plural = "Client deposits"
+        indexes = [
+            models.Index(
+                fields=["reminder_date"],
+                name="depositclient_unsent_idx",
+                condition=models.Q(is_reminder_sent=False),
+            ),
+        ]
         
     def save(self, *args, **kwargs):
         if self.payment_due_by:
@@ -181,7 +227,7 @@ class DepositClient(models.Model):
 
     def __str__(self):
         return f"Client deposit for {self.client_order} - {self.deposit_type}"
-    
+
 class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
     phone_number = models.CharField(
@@ -200,6 +246,15 @@ class RecoveryCode(models.Model):
     expires_at = models.DateTimeField()
     used_at = models.DateTimeField(null=True, blank=True)
     invalidated_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=["user"],
+                name="recoverycode_active_idx",
+                condition=models.Q(invalidated_at__isnull=True, used_at__isnull=True),
+            ),
+        ]
 
     def is_valid(self):
         return self.used_at is None and self.invalidated_at is None and timezone.now() < self.expires_at
@@ -224,9 +279,16 @@ class RecoverySession(models.Model):
     result = models.CharField(max_length=10, choices=Status_recovery_session.choices, default=Status_recovery_session.ACTIVE,)
     ip_address = models.GenericIPAddressField(null=True, blank=True, help_text="IP address from which the recovery session was initiated.")
 
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=["user", "-started_at"]
+            ),
+        ]
+
     def __str__(self):
         return (f"{self.user.username} " f"({self.started_at:%Y-%m-%d %H:%M}) " f"- {self.result}")
-        
+
 class RecoveryAttempt(models.Model):
     session = models.ForeignKey(RecoverySession, on_delete=models.CASCADE, related_name="events", null=True, blank=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="recovery_attempts")
@@ -237,10 +299,18 @@ class RecoveryAttempt(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["session", "created_at"]
+            ),
+        ]
+
+    class Meta:
+        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.user.username} — {self.get_status_display()} @ {self.created_at:%Y-%m-%d %H:%M}"
-    
+
 class NtfySentReminder(models.Model):
     reminder_id = models.CharField(max_length=100, unique=True)
     last_sent_at = models.DateTimeField(default=timezone.now)
