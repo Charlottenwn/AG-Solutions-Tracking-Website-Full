@@ -12,7 +12,6 @@ from .models import (
 )
 import json
 
-
 @admin.register(DepositFactory)
 class DepositFactoryAdmin(admin.ModelAdmin):
     fields = [
@@ -24,6 +23,12 @@ class DepositFactoryAdmin(admin.ModelAdmin):
         'reminder_date',
     ]
 
+    list_display = ['__str__', 'is_paid', 'payment_due_by', 'is_reminder_sent']
+    list_filter = ['is_paid', 'is_reminder_sent', 'deposit_type']
+    # factory_order.__str__ touches factory_order.order.__str__ too — grab
+    # all 3 levels in one query instead of 3 queries per row.
+    list_select_related = ['factory_order', 'factory_order__order', 'deposit_type']
+    
     def get_readonly_fields(self, request, obj=None):
         readonly = ['reminder_date'] # always readonly
         if obj:
@@ -45,6 +50,10 @@ class DepositClientAdmin(admin.ModelAdmin):
         'reminder_date',
     ]
     
+    list_display = ['__str__', 'is_paid', 'payment_due_by', 'is_reminder_sent']
+    list_filter = ['is_paid', 'is_reminder_sent', 'deposit_type']
+    list_select_related = ['client_order', 'client_order__order', 'deposit_type']
+
     def get_readonly_fields(self, request, obj=None):
         readonly = ['reminder_date']  # always readonly
         if obj:
@@ -66,6 +75,10 @@ class TransportAdmin(admin.ModelAdmin):
         'is_reminder_sent',
         'reminder_date',
     ]
+    
+    list_display = ['__str__', 'courier', 'delivery_date', 'is_reminder_sent']
+    list_filter = ['is_reminder_sent']
+    list_select_related = ['order', 'order__client']
     
     def get_readonly_fields(self, request, obj=None):
         readonly = ['reminder_date']  # always readonly
@@ -89,6 +102,10 @@ class FactoryOrderAdmin(admin.ModelAdmin):
         'package_clarification_reminder_date',
         'is_package_clarification_reminder_sent',
     ]
+    
+    list_display = ['__str__', 'status', 'production_start_date', 'production_end_date']
+    list_filter = ['status', 'is_furniture_reminder_sent', 'is_package_clarification_reminder_sent']
+    list_select_related = ['order', 'order__client']
     
     def get_readonly_fields(self, request, obj=None):
         readonly = ['furniture_reminder_date', 'package_clarification_reminder_date']  # always readonly
@@ -163,6 +180,7 @@ class RecoverySessionAdmin(admin.ModelAdmin):
     readonly_fields = ["id", "user", "started_at", "finished_at", "result"]
     list_filter = ["result", "started_at", "finished_at"]
     search_fields = ["user__username", "user__email"]
+    list_select_related = ["user"]
     
     inlines = [RecoveryAttemptInline]
     
