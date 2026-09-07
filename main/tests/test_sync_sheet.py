@@ -9,6 +9,7 @@ import tempfile
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+from main.choices import PaymentType
 
 from django.core.management import call_command
 from django.test import TestCase, SimpleTestCase
@@ -334,7 +335,7 @@ class SyncSheetCommandTests(TestCase):
 
         self.assertEqual(client_order.client, client)
         self.assertEqual(client_order.total_amount, Decimal("1000"))
-        self.assertEqual(client_order.payment_type, "Avansas")
+        self.assertEqual(client_order.payment_type, PaymentType.PAYMENT_TYPE_DEPOSIT)
 
         factory_order = FactoryOrder.objects.get(order=order)
 

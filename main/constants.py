@@ -1,4 +1,6 @@
 import re
+from datetime import timedelta
+from django.utils import timezone
 
 # /main/models.py
 REMINDER_DAYS_BEFORE = 7
@@ -25,3 +27,20 @@ DEPOSIT_TYPE_FULL = "Full Payment"
 
 # /main/services.py
 SEVEN_API_URL = "https://gateway.seven.io/api/sms"
+
+# /main/models.py
+def compute_reminder_date(due_date, days_before=REMINDER_DAYS_BEFORE, today=None):
+    """
+    Shared by Transport, DepositFactory, DepositClient.
+    If due_date is within `days_before` days (or already past), the
+    reminder date is "today" so it fires immediately. Otherwise it's
+    `days_before` days ahead of the due date. Returns None if due_date
+    is falsy.
+    """
+    if not due_date:
+        return None
+    today = today or timezone.now().date()
+    days_until_due = (due_date - today).days
+    if days_until_due <= days_before:
+        return today
+    return due_date - timedelta(days=days_before)

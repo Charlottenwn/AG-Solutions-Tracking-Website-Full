@@ -5,8 +5,10 @@ from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from django.core.management.base import BaseCommand
 from django.db import transaction
-from main.constants import (DEPOSIT_TYPE_DEPOSIT, DEPOSIT_TYPE_FINAL, DEPOSIT_TYPE_FULL)
-from main.models import (Client, ClientOrder, DepositClient, DepositFactory, DepositType, FactoryOrder, Order, Transport)
+from main.choices import PaymentType
+from main.constants import DEPOSIT_TYPE_DEPOSIT, DEPOSIT_TYPE_FINAL, DEPOSIT_TYPE_FULL
+from main.models import (Client, ClientOrder, DepositClient, DepositFactory,
+                         DepositType, FactoryOrder, Order, Transport,)
 
 SHEET_TAB_NAME = "Sheet1"
 HEADER_ROW = 6
@@ -35,6 +37,11 @@ SHEET_COLUMNS = {
     "shipment_cost": "VEŽIMO KAINA",
 }
 
+PAYMENT_TYPE_FROM_SHEET_LABEL = {
+    "Visa suma": PaymentType.PAYMENT_TYPE_FULL,
+    "Po pristatymo": PaymentType.PAYMENT_TYPE_AFTER_DELIVERY,
+    "Avansas": PaymentType.PAYMENT_TYPE_DEPOSIT,
+}
 
 def parse_decimal(value):
     """
@@ -85,7 +92,13 @@ def parse_date(value):
         except ValueError:
             return None
 
-    for fmt in ("%Y.%m.%d", "%Y-%m-%d", "%d/%m/%Y", "%d.%m.%Y", "%m/%d/%Y",):
+    for fmt in (
+        "%Y.%m.%d",
+        "%Y-%m-%d",
+        "%d/%m/%Y",
+        "%d.%m.%Y",
+        "%m/%d/%Y",
+    ):
         try:
             return datetime.strptime(value, fmt).date()
         except ValueError:
@@ -394,7 +407,17 @@ class Command(BaseCommand):
         final = client_final_amount or Decimal("0")
         total = client_total or Decimal("0")
 
-        payment_type = str(row.get(c["client_payment_type"], "")).strip()
+        raw_payment_type = str(row.get(c["client_payment_type"], "")).strip()
+
+        if raw_payment_type == "":
+            payment_type = ""
+        elif raw_payment_type in PAYMENT_TYPE_FROM_SHEET_LABEL:
+            payment_type = PAYMENT_TYPE_FROM_SHEET_LABEL[raw_payment_type]
+        else:
+            raise ValueError(
+                f"Unknown payment type '{raw_payment_type}' "
+                f"for contract {contract_number}"
+            )
 
         client_order_defaults = {
             "client": client_obj,
@@ -467,7 +490,7 @@ class Command(BaseCommand):
             client_deposit_amount = None
             client_final_amount = None
 
-        elif payment_type == "Visa suma":
+        elif payment_type == PaymentType.PAYMENT_TYPE_FULL:
             _, _, changed = get_or_create_then_update(
                 DepositClient,
                 {
@@ -497,7 +520,7 @@ class Command(BaseCommand):
             if deleted_count:
                 row_changed = True
 
-        elif payment_type == "Po pristatymo":
+        elif payment_type == PaymentType.PAYMENT_TYPE_AFTER_DELIVERY:
             _, _, changed = get_or_create_then_update(
                 DepositClient,
                 {
@@ -527,7 +550,7 @@ class Command(BaseCommand):
             if deleted_count:
                 row_changed = True
 
-        elif payment_type == "Avansas":
+        elif payment_type == PaymentType.PAYMENT_TYPE_DEPOSIT:
             deposit_covers_full_total = total > 0 and deposit >= total
 
             _, _, changed = get_or_create_then_update(
@@ -586,12 +609,6 @@ class Command(BaseCommand):
 
             if deleted_count:
                 row_changed = True
-
-        else:
-            raise ValueError(
-                f"Unknown payment type '{payment_type}' "
-                f"for contract {contract_number}"
-            )
 
         # ---------------------------------------------------------
         # Factory order

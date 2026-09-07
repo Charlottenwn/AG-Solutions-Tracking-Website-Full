@@ -2,7 +2,7 @@ from django.utils import timezone
 from django.db import models
 from django.conf import settings
 from .choices import Status, PaymentType
-from .constants import REMINDER_DAYS_BEFORE
+from .constants import REMINDER_DAYS_BEFORE, compute_reminder_date
 
 class Status_recovery(models.TextChoices):
     INITIATED = "initiated", "Initiated"
@@ -13,20 +13,10 @@ class Status_recovery(models.TextChoices):
     FAILED_INVALID_CODE = "failed_invalid_code", "Failed — invalid/expired code"
     FAILED_SMS_ERROR = "failed_sms_error", "Failed — SMS send error"
 
-class Status(models.TextChoices):
-    PENDING = "pending", "Pending"
-    IN_PROGRESS = "in_progress", "In Progress"
-    COMPLETED = "completed", "Completed"
-
 class Status_recovery_session(models.TextChoices):
     ACTIVE = "active", "Active"
     SUCCESS = "success", "Success"
     FAILED = "failed", "Failed"
-
-class PaymentType(models.TextChoices):
-    FULL = "full", "Visa suma"
-    DEPOSIT = "deposit", "Avansas"
-    AFTER_DELIVERY = "after_delivery", "Po pristatymo"
 
 class Client(models.Model):
     client_name = models.CharField(max_length=100)
@@ -78,18 +68,12 @@ class Transport(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        if self.delivery_date:
-            from django.utils import timezone
-            from datetime import timedelta
-            days_until_delivery = (self.delivery_date - timezone.now().date()).days
-            if days_until_delivery <= REMINDER_DAYS_BEFORE:
-                self.reminder_date = timezone.now().date()
-            else:
-                self.reminder_date = self.delivery_date - timedelta(days=REMINDER_DAYS_BEFORE)
+        self.reminder_date = compute_reminder_date(self.delivery_date)
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Transport for {self.order}"
+
 
 class FactoryOrder(models.Model):
     order=models.ForeignKey(Order, on_delete=models.CASCADE)
@@ -180,14 +164,7 @@ class DepositFactory(models.Model):
         ]
 
     def save(self, *args, **kwargs):
-        if self.payment_due_by:
-            from django.utils import timezone
-            from datetime import timedelta
-            days_until_due = (self.payment_due_by - timezone.now().date()).days
-            if days_until_due <= REMINDER_DAYS_BEFORE:
-                self.reminder_date = timezone.now().date()
-            else:
-                self.reminder_date = self.payment_due_by - timedelta(days=REMINDER_DAYS_BEFORE)
+        self.reminder_date = compute_reminder_date(self.payment_due_by)
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -213,20 +190,14 @@ class DepositClient(models.Model):
                 condition=models.Q(is_reminder_sent=False),
             ),
         ]
-        
+
     def save(self, *args, **kwargs):
-        if self.payment_due_by:
-            from django.utils import timezone
-            from datetime import timedelta
-            days_until_due = (self.payment_due_by - timezone.now().date()).days
-            if days_until_due <= REMINDER_DAYS_BEFORE:
-                self.reminder_date = timezone.now().date()
-            else:
-                self.reminder_date = self.payment_due_by - timedelta(days=REMINDER_DAYS_BEFORE)
+        self.reminder_date = compute_reminder_date(self.payment_due_by)
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Client deposit for {self.client_order} - {self.deposit_type}"
+
 
 class UserProfile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
@@ -304,9 +275,6 @@ class RecoveryAttempt(models.Model):
                 fields=["session", "created_at"]
             ),
         ]
-
-    class Meta:
-        ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.user.username} — {self.get_status_display()} @ {self.created_at:%Y-%m-%d %H:%M}"
