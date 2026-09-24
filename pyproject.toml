@@ -7,7 +7,7 @@ dependencies = [
     "asgiref==3.11.1",
     "certifi==2026.6.17",
     "cffi==2.0.0",
-    "charset-normalizer==3.4.7",
+    "charset-normalizer==3.5.1",
     "cryptography==50.0.0",
     "Django==6.0.8",
     "google-auth==2.55.0",
