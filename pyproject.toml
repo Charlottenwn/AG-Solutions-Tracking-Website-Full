@@ -5,7 +5,7 @@ description = "AG Solutions UAB internal order tracking system"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "asgiref==3.11.1",
-    "certifi==2026.6.17",
+    "certifi==2026.7.22",
     "cffi==2.0.0",
     "charset-normalizer==3.4.7",
     "cryptography==50.0.0",
