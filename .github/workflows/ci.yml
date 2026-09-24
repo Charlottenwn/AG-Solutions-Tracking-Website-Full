@@ -54,25 +54,6 @@ jobs:
 
           exit 0
 
-      - name: Install dependency audit tools
-        run: python -m pip install pip-audit uv
-
-      - name: Audit dependencies for known vulnerabilities (advisory)
-        shell: powershell
-        run: |
-          python -m uv export --frozen --no-dev --no-hashes --no-emit-project -o audit-requirements.txt
-          python -m pip_audit -r audit-requirements.txt --no-deps
-          $auditExit = $LASTEXITCODE
-
-          if ($auditExit -ne 0) {
-            Write-Host "::warning title=pip-audit::Known vulnerabilities found. Please check the output above."
-          }
-          else {
-            Write-Host "Dependency audit passed."
-          }
-
-          exit 0
-
   build-check:
     needs: quality
     runs-on: self-hosted
@@ -148,14 +129,52 @@ jobs:
         if: failure()
         run: docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml logs db
 
-      - name: Scan web image with Trivy (advisory)
-        shell: powershell
-        run: |
-          $image = docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml config --images | Where-Object { $_ -like "*-web" } | Select-Object -First 1
-          Write-Host "Scanning image: $image"
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v trivy-cache:/root/.cache/ aquasec/trivy:latest image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 0 $image
-          exit 0
-          
       - name: Clean up any containers left behind
         if: always()
         run: docker compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.ci.yml down -v
+
+  security:
+    needs: build-check
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout (clean copy — only what's actually committed)
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependency audit tools
+        run: python -m pip install pip-audit uv
+
+      - name: Audit dependencies for known vulnerabilities (advisory)
+        shell: powershell
+        run: |
+          python -m uv export --frozen --no-dev --no-hashes --no-emit-project -o audit-requirements.txt
+          python -m pip_audit -r audit-requirements.txt --no-deps
+          $auditExit = $LASTEXITCODE
+
+          if ($auditExit -ne 0) {
+            Write-Host "::warning title=pip-audit::Known vulnerabilities found. Please check the output above."
+          }
+          else {
+            Write-Host "Dependency audit passed."
+          }
+
+          exit 0
+
+      - name: Scan web image with Trivy (advisory)
+        shell: powershell
+        run: |
+          $image = "$($env:GITHUB_REPOSITORY.Split('/')[1].ToLower())-web"
+          Write-Host "Scanning image: $image"
+
+          docker image inspect $image | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error title=Trivy::Image $image not found on this runner."
+            exit 1
+          }
+
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v trivy-cache:/root/.cache/ aquasec/trivy:latest image --scanners vuln --severity HIGH,CRITICAL --ignore-unfixed --exit-code 0 $image
+          exit 0
