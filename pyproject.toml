@@ -10,7 +10,7 @@ dependencies = [
     "charset-normalizer==3.4.7",
     "cryptography==50.0.0",
     "Django==6.0.8",
-    "google-auth==2.55.0",
+    "google-auth==2.58.0",
     "google-auth-oauthlib==1.4.0",
     "gspread==6.2.1",
     "idna==3.18",
