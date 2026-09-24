@@ -225,7 +225,7 @@ Because prod bakes code via `COPY . .` (no bind mounts), any file generated insi
 ## Security
 
 - Layered access: Nginx IP allowlist (office LAN / Tailscale) → Nginx HTTP Basic Auth → Django's own per-user login (`@login_required`).
-- HTTPS-only Nginx, port 80 redirects to 443; `SESSION_COOKIE_SECURE` and `CSRF_COOKIE_SECURE` are both `True`.
+- HTTPS-only Nginx, port 80 redirects to 443; `SESSION_COOKIE_SECURE` and `CSRF_COOKIE_SECURE` are both `False`. In production, they are `True`.
 - Password hashing: Argon2 as the primary hasher, with PBKDF2/BCrypt/Scrypt retained as fallback verifiers so any pre-existing hashes upgrade transparently on next login.
 - Rate limiting on the login endpoint to deter brute force.
 - No public exposure — no port-forwarding; access is LAN/Tailscale-only by design.
