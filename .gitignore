@@ -27,7 +27,6 @@ postgres_data/
 nginx.conf
 
 # Pytest coverage runner config file
-pytest.ini
 .coveragerc
 .pytest_cache
 *.VSCodeCounter/
