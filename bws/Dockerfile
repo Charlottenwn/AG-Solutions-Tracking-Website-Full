@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 ARG TARGETARCH
 ARG BWS_VERSION=2.1.0
