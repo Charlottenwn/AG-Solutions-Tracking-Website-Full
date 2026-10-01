@@ -23,7 +23,7 @@ dependencies = [
     "requests-oauthlib==2.0.0",
     "sqlparse==0.6.0",
     "tzdata==2026.2",
-    "urllib3==2.7.0",
+    "urllib3==2.8.0",
     "celery==5.6.3",
     "django-celery-beat==2.9.0",
     "django-celery-results==2.6.0",
