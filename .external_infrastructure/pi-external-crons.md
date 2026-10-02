@@ -23,7 +23,7 @@ All scripts live in `/home/admin_banana_pie/scripts/`. Logs go to `/home/admin_b
 | `0 4 * * 0` | Sundays 04:00 | `nas-backup.sh` | `nas-backup.log` | Weekly backup to the DS218j NAS |
 | `0 5 * * 0` | Sundays 05:00 | `docker-image-prune.sh` | `docker-prune.log` | Removes unused Docker images |
 
-`<HC_PING_URL>` is the full hc-ping.com URL. It is a secret: keep it in Bitwarden, not in git or this file.
+`<HC_PING_URL>` is the full hc-ping.com URL. Secret kept in Bitwarden.
 The healthchecks.io check's **Period** must be set to **1 minute** (with a few minutes of grace) to match the every-minute schedule.
 
 ## OS-provided schedulers
