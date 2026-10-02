@@ -2,12 +2,12 @@
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
 # FIRST AUTHOR sarlote.volosevic@gmail.com, 2026.
-#
+# 
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-15 19:43+0300\n"
+"POT-Creation-Date: 2026-10-02 10:43+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -19,88 +19,96 @@ msgstr ""
 "11) ? 0 : (n % 10 >= 2 && n % 10 <=9) && (n % 100 > 19 || n % 100 < 11) ? "
 "1 : n % 1 != 0 ? 2: 3);\n"
 
-#: main/services.py:158 main/services.py:184
+#: main/services.py:176 main/services.py:202
 msgid "no deposit info"
 msgstr "nėra depozito informacijos"
 
-#: main/services.py:170
+#: main/services.py:188
 msgid "Paid ✓"
 msgstr "Sumokėta"
 
-#: main/services.py:207
+#: main/services.py:225
 #, python-format
 msgid "%(type)s due"
 msgstr "%(type)s laukiama"
 
-#: main/services.py:209
+#: main/services.py:227
 #, python-format
 msgid "%(type)s overdue by %(days)s days"
 msgstr "%(type)s vėluoja %(days)s dienas"
 
-#: main/services.py:213
+#: main/services.py:231
 #, python-format
 msgid "%(type)s due in %(days)s days"
 msgstr "%(type)s ateina po %(days)s dienų"
 
-#: main/services.py:232 main/services.py:264
+#: main/services.py:250 main/services.py:286
 #: main/templates/main/main_offer_page.html:101
 msgid "Transport pending"
 msgstr "Laukiama transporto"
 
-#: main/services.py:251
+#: main/services.py:269
+msgid "Transport sent"
+msgstr "Transportas išsiųstas"
+
+#: main/services.py:273
 #, python-format
 msgid "Transport confirmed · overdue by %(days)s days past original date"
 msgstr "Transportas užsakytas - vėluojama %(days)s dienas nuo pirmutines datos"
 
-#: main/services.py:255 main/templates/main/main_offer_page.html:102
+#: main/services.py:277 main/templates/main/main_offer_page.html:102
 msgid "Transport confirmed"
 msgstr "Transportas užsakytas"
 
-#: main/services.py:258
+#: main/services.py:280
 #, python-format
 msgid "Transport pending · overdue by %(days)s days"
 msgstr "Laukiama transporto - vėluojama %(days)s dienas"
 
-#: main/services.py:261
+#: main/services.py:283
 #, python-format
 msgid "Transport pending · %(days)s days remaining"
 msgstr "Laukiama transporto - liko %(days)s dienos"
 
-#: main/services.py:283
+#: main/services.py:305
 msgid "Furniture reminder sent"
 msgstr "Artėja furnitūros priminimo terminas"
 
-#: main/services.py:286
+#: main/services.py:308
+#, python-format
 msgid "Furniture reminder overdue by %(days)s days"
 msgstr "Furnitūros priminimas vėluoja %(days)s dienų"
 
-#: main/services.py:289
+#: main/services.py:311
+#, python-format
 msgid "Furniture reminder in %(days)s days"
 msgstr "Furnitūros priminimas po %(days)s dienų"
 
-#: main/services.py:308
+#: main/services.py:330
 msgid "Package clarification reminder sent"
 msgstr "Pakuočių patikslinimo priminimas išsiųstas"
 
-#: main/services.py:311
+#: main/services.py:333
+#, python-format
 msgid "Package clarification overdue by %(days)s days"
 msgstr "Pakuočių patikslinimas vėluoja %(days)s dienas"
 
-#: main/services.py:314
+#: main/services.py:336
+#, python-format
 msgid "Package clarification in %(days)s days"
 msgstr "Pakuočių patikslinimas po %(days)s dienų"
 
-#: main/services.py:392
+#: main/services.py:414
 #, python-format
 msgid "%(contract)s: Client %(label)s"
 msgstr "%(contract)s: Klientas %(label)s"
 
-#: main/services.py:396
+#: main/services.py:418
 #, python-format
 msgid "%(contract)s: Factory %(label)s"
 msgstr "%(contract)s: Gamykla %(label)s"
 
-#: main/services.py:400 main/services.py:403 main/services.py:406
+#: main/services.py:422 main/services.py:425 main/services.py:428
 #, python-format
 msgid "%(contract)s: %(label)s"
 msgstr "%(contract)s: %(label)s"
@@ -384,32 +392,32 @@ msgstr "Patvirtinti naują slaptažodį"
 msgid "Set password"
 msgstr "Nustatyti slaptažodį"
 
-#: main/views.py:65
+#: main/views.py:62
 msgid "Invalid or expired code."
 msgstr "Neteisingas arba nebegaliojantis kodas."
 
-#: main/views.py:87
+#: main/views.py:84
 msgid "Password must be at least 14 characters."
 msgstr "Slaptažodis turi sudaryti bent 14 simbolių."
 
-#: main/views.py:89
+#: main/views.py:86
 msgid "Passwords don't match."
 msgstr "Slaptažodžiai nesutampa"
 
-#: main/views.py:139
+#: main/views.py:136
 msgid "No phone number on file for this account. Contact an admin."
 msgstr ""
 "Šiai paskyrai telefono numeris nenurodytas. Susisiekite su administratoriumi."
 
-#: main/views.py:143
+#: main/views.py:140
 #, python-format
 msgid "Too many attempts. Try again after %(time)s."
 msgstr "Per daug bandymų. Bandykite dar kartą po %(time)s."
 
-#: main/views.py:166
+#: main/views.py:163
 msgid "Invalid username or password."
 msgstr "Neteisingas vartotojo vardas arba slaptažodis."
 
-#: main/views.py:184
+#: main/views.py:182
 msgid "unknown kind"
 msgstr "nežinoma rušis"
