@@ -120,7 +120,7 @@ def is_paid(amount, total):
 
 
 def parse_sent(value):
-    return str(value or "").strip().lower() in ("išsiųsta", "issiusta", "sent")
+    return str(value or "").strip().lower() in ("išsiųsta", "issiusta", "sent", "užsakyta")
 
 
 def load_sheet_id(sheet_id_json_path):

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-02 10:43+0300\n"
+"POT-Creation-Date: 2026-10-02 12:43+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -42,73 +42,64 @@ msgstr "%(type)s vėluoja %(days)s dienas"
 msgid "%(type)s due in %(days)s days"
 msgstr "%(type)s ateina po %(days)s dienų"
 
-#: main/services.py:250 main/services.py:286
+#: main/services.py:250 main/services.py:277
 #: main/templates/main/main_offer_page.html:101
 msgid "Transport pending"
 msgstr "Laukiama transporto"
 
-#: main/services.py:269
+#: main/services.py:268
 msgid "Transport sent"
-msgstr "Transportas išsiųstas"
-
-#: main/services.py:273
-#, python-format
-msgid "Transport confirmed · overdue by %(days)s days past original date"
-msgstr "Transportas užsakytas - vėluojama %(days)s dienas nuo pirmutines datos"
-
-#: main/services.py:277 main/templates/main/main_offer_page.html:102
-msgid "Transport confirmed"
 msgstr "Transportas užsakytas"
 
-#: main/services.py:280
+#: main/services.py:271
 #, python-format
 msgid "Transport pending · overdue by %(days)s days"
 msgstr "Laukiama transporto - vėluojama %(days)s dienas"
 
-#: main/services.py:283
+#: main/services.py:274
 #, python-format
 msgid "Transport pending · %(days)s days remaining"
 msgstr "Laukiama transporto - liko %(days)s dienos"
 
-#: main/services.py:305
+#: main/services.py:296
 msgid "Furniture reminder sent"
 msgstr "Artėja furnitūros priminimo terminas"
 
-#: main/services.py:308
+#: main/services.py:299
 #, python-format
 msgid "Furniture reminder overdue by %(days)s days"
 msgstr "Furnitūros priminimas vėluoja %(days)s dienų"
 
-#: main/services.py:311
+#: main/services.py:302
 #, python-format
 msgid "Furniture reminder in %(days)s days"
 msgstr "Furnitūros priminimas po %(days)s dienų"
 
-#: main/services.py:330
+#: main/services.py:321
 msgid "Package clarification reminder sent"
 msgstr "Pakuočių patikslinimo priminimas išsiųstas"
 
-#: main/services.py:333
+#: main/services.py:324
 #, python-format
 msgid "Package clarification overdue by %(days)s days"
 msgstr "Pakuočių patikslinimas vėluoja %(days)s dienas"
 
-#: main/services.py:336
+#: main/services.py:327
 #, python-format
 msgid "Package clarification in %(days)s days"
 msgstr "Pakuočių patikslinimas po %(days)s dienų"
 
-#: main/services.py:414
+#: main/services.py:405
 #, python-format
 msgid "%(contract)s: Client %(label)s"
 msgstr "%(contract)s: Klientas %(label)s"
 
-#: main/services.py:418
+#: main/services.py:409
 #, python-format
 msgid "%(contract)s: Factory %(label)s"
 msgstr "%(contract)s: Gamykla %(label)s"
 
-#: main/services.py:422 main/services.py:425 main/services.py:428
+#: main/services.py:413 main/services.py:416 main/services.py:419
 #, python-format
 msgid "%(contract)s: %(label)s"
 msgstr "%(contract)s: %(label)s"
@@ -193,6 +184,10 @@ msgstr "Nesumokėta"
 #: main/templates/main/main_offer_page.html:100
 msgid "Overdue"
 msgstr "Vėluoja"
+
+#: main/templates/main/main_offer_page.html:102
+msgid "Transport confirmed"
+msgstr "Transportas užsakytas"
 
 #: main/templates/main/main_offer_page.html:103
 msgid "Transport overdue"
@@ -421,3 +416,8 @@ msgstr "Neteisingas vartotojo vardas arba slaptažodis."
 #: main/views.py:182
 msgid "unknown kind"
 msgstr "nežinoma rušis"
+
+#, python-format
+#~ msgid "Transport confirmed · overdue by %(days)s days past original date"
+#~ msgstr ""
+#~ "Transportas užsakytas - vėluojama %(days)s dienas nuo pirmutines datos"
