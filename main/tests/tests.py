@@ -33,12 +33,13 @@ def make_deposit(
     )
 
 
-def make_transport(*, courier="", delivery_date=None, is_reminder_sent=False):
+def make_transport(*, courier="", delivery_date=None, is_reminder_sent=False, is_sent=False):
     """Lightweight stand-in for a Transport row."""
     return SimpleNamespace(
         courier=courier,
         delivery_date=delivery_date,
         is_reminder_sent=is_reminder_sent,
+        is_sent=is_sent,
     )
 
 
@@ -162,8 +163,11 @@ class ComputeTransportStatusTests(SimpleTestCase):
         self.assertEqual(result["token"], "pending")
 
     def test_courier_assigned_is_confirmed(self):
-        result = compute_transport_status(make_transport(courier="DSV"), self.today)
+        result = compute_transport_status(make_transport(courier="DSV", is_sent=True), self.today)
         self.assertEqual(result["token"], "confirmed")
+        self.assertEqual(result["courier"], "DSV")
+        result = compute_transport_status(make_transport(courier="DSV", is_sent=False), self.today)
+        self.assertEqual(result["token"], "pending")
         self.assertEqual(result["courier"], "DSV")
 
     def test_no_courier_future_date_shows_days_remaining(self):
@@ -182,11 +186,11 @@ class ComputeTransportStatusTests(SimpleTestCase):
         self.assertTrue(result["overdue"])
 
     def test_courier_assigned_past_original_date_still_confirmed(self):
-        # Confirmed transport overrides overdue — courier being set means
-        # it shipped, even if the original planned date has passed.
+        # Confirmed transport overrides overdue — courier being set overrides overdue
+        # even if the original planned date has passed.
         result = compute_transport_status(
             make_transport(
-                courier="NTEX", delivery_date=self.today - timedelta(days=5)
+                courier="NTEX", is_sent=True, delivery_date=self.today - timedelta(days=5)
             ),
             self.today,
         )

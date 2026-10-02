@@ -133,7 +133,7 @@ class MainOfferPageContentTests(TestCase):
         DepositFactory.objects.create(
             factory_order=factory_order, deposit_type=deposit_type, is_paid=True
         )
-        Transport.objects.create(order=order, courier="DSV")
+        Transport.objects.create(order=order, courier="DSV", is_sent=True)
         return order
 
     def test_stats_reflect_total_orders(self):

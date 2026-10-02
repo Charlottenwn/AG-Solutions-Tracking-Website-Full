@@ -107,7 +107,7 @@ class GetDueRemindersTests(TestCase):
     def test_confirmed_transport_never_due(self):
         order = self._order()
         Transport.objects.create(
-            order=order, courier="DSV", delivery_date=self.today + timedelta(days=1)
+            order=order, courier="DSV", is_sent=True, delivery_date=self.today + timedelta(days=1)
         )
         due = get_due_reminders(self.today)
         ids = [item["id"] for item in due]
