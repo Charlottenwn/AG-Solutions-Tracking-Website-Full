@@ -34,6 +34,7 @@ SHEET_COLUMNS = {
     "client_shipment_address": "PRISTATYMO ADRESAS",
     "client_contact": "KONTAKTAS",
     "courier": "VEŽĖJAS DSV/NTEX",
+    "transport_status": "TRANSPORTO BŪSENA", 
     "shipment_cost": "VEŽIMO KAINA",
 }
 
@@ -116,6 +117,10 @@ def is_paid(amount, total):
         return True
 
     return False
+
+
+def parse_sent(value):
+    return str(value or "").strip().lower() in ("išsiųsta", "issiusta", "sent")
 
 
 def load_sheet_id(sheet_id_json_path):
@@ -704,6 +709,7 @@ class Command(BaseCommand):
             "delivery_address": str(row.get(c["client_shipment_address"], "")).strip(),
             "delivery_price": parse_decimal(row.get(c["shipment_cost"])),
             "delivery_date": parse_date(row.get(c["shipment_delivery_date"])),
+            "is_sent": parse_sent(row.get(c["transport_status"])),
         }
 
         _, _, changed = get_or_create_then_update(
