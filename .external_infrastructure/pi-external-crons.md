@@ -26,7 +26,7 @@ All scripts live in `/home/admin_banana_pie/scripts/`. Logs go to `/home/admin_b
 `<HC_PING_URL>` is the full hc-ping.com URL. It is a secret: keep it in Bitwarden, not in git or this file.
 The healthchecks.io check's **Period** must be set to **1 minute** (with a few minutes of grace) to match the every-minute schedule.
 
-## OS-provided schedulers (defaults, not yours)
+## OS-provided schedulers
 
 - `/etc/cron.d/`: `e2scrub_all`
 - `/etc/cron.daily/`: `apt-compat`, `dpkg`, `logrotate`, `man-db`
