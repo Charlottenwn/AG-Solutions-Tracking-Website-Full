@@ -53,6 +53,7 @@ class Transport(models.Model):
     delivery_address = models.CharField(max_length=255, blank=True)
     delivery_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     delivery_date = models.DateField(null=True, blank=True)
+    is_sent = models.BooleanField(default=False)
     is_reminder_sent = models.BooleanField(default=False)
     reminder_date = models.DateField(null=True, blank=True, editable=False)
 

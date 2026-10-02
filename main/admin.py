@@ -72,6 +72,7 @@ class TransportAdmin(admin.ModelAdmin):
         'delivery_address',
         'delivery_price',
         'delivery_date',
+        'is_sent',
         'is_reminder_sent',
         'reminder_date',
     ]
