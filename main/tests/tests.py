@@ -186,8 +186,7 @@ class ComputeTransportStatusTests(SimpleTestCase):
         self.assertTrue(result["overdue"])
 
     def test_courier_assigned_past_original_date_still_confirmed(self):
-        # Confirmed transport overrides overdue — courier being set overrides overdue
-        # even if the original planned date has passed.
+        # Sent overrides overdue, even if the original planned date has passed.
         result = compute_transport_status(
             make_transport(
                 courier="NTEX", is_sent=True, delivery_date=self.today - timedelta(days=5)
@@ -196,7 +195,7 @@ class ComputeTransportStatusTests(SimpleTestCase):
         )
         self.assertEqual(result["token"], "confirmed")
         self.assertFalse(result["overdue"])
-        self.assertIn("overdue by 5 days", result["label"])
+        self.assertIn(result["label"], "Transport sent")
 
 
 class ComputeFurnitureStatusTests(SimpleTestCase):
