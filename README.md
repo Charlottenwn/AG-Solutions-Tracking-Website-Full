@@ -1,4 +1,4 @@
-# Company Tracking Website
+# Company Order Tracking Website
 
 Internal order-tracking web application for a company. Gives a non-technical team real-time visibility into commercial orders — transport status, client deposits, factory deposits, and payment/production reminders — without asking staff to change how they already work in Google Sheets.
 
